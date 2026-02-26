@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash Card Ultra</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg:#0f172a;
+    --glass:rgba(255,255,255,0.05);
+    --border:rgba(255,255,255,0.1);
+    --primary:#00f5ff;
+    --secondary:#0072ff;
+    --danger:#ff4d4d;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Montserrat',sans-serif;}
+
+body{
+    min-height:100vh;
+    background:radial-gradient(circle at 20% 20%,#0ea5e9 0%,transparent 40%),
+               radial-gradient(circle at 80% 80%,#9333ea 0%,transparent 40%),
+               var(--bg);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+}
+
+/* MAIN PANEL */
+.container{
+    width:900px;
+    max-width:95%;
+    padding:40px;
+    border-radius:25px;
+    background:var(--glass);
+    backdrop-filter:blur(25px);
+    border:1px solid var(--border);
+    box-shadow:0 30px 80px rgba(0,0,0,0.6);
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+h1{
+    text-align:center;
+    font-weight:800;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    background-clip:text;
+    -webkit-background-clip:text;
+    color:transparent;
+}
+
+/* INPUTS */
+.input-group{
+    display:flex;
+    gap:15px;
+}
+
+input{
+    flex:1;
+    padding:12px 15px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.05);
+    color:white;
+    transition:0.3s;
+}
+
+input:focus{
+    outline:none;
+    border-color:var(--primary);
+    box-shadow:0 0 15px rgba(0,255,255,0.3);
+}
+
+/* BUTTON */
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:40px;
+    cursor:pointer;
+    font-weight:600;
+    transition:0.3s;
+}
+
+.btn-primary{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white;
+}
+
+.btn-primary:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 30px rgba(0,255,255,0.4);
+}
+
+.btn-danger{
+    background:var(--danger);
+    color:white;
+}
+
+.btn-secondary{
+    background:rgba(255,255,255,0.1);
+    color:white;
+}
+
+/* PROGRESS BAR */
+.progress{
+    width:100%;
+    height:8px;
+    background:rgba(255,255,255,0.1);
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--primary),var(--secondary));
+    transition:0.4s;
+}
+
+/* CARD */
+.card-wrapper{
+    perspective:1500px;
+}
+
+.card{
+    width:100%;
+    height:230px;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:0.8s cubic-bezier(.4,0,.2,1);
+    cursor:pointer;
+}
+
+.card.flip{
+    transform:rotateY(180deg);
+}
+
+.card-face{
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:25px;
+    font-size:24px;
+    font-weight:600;
+    backface-visibility:hidden;
+    box-shadow:0 25px 60px rgba(0,0,0,0.5);
+}
+
+.front{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+}
+
+.back{
+    background:linear-gradient(135deg,#9333ea,#ec4899);
+    transform:rotateY(180deg);
+}
+
+/* CONTROL BUTTONS */
+.controls{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+}
+
+/* STATS */
+.stats{
+    text-align:center;
+    font-size:14px;
+    opacity:0.8;
+}
+
+.card-wrapper{
+    perspective:1500px;
+    animation:float 5s ease-in-out infinite;
+}
+
+@keyframes float{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-8px);}
+}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+    .input-group{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FLASHCARD SYSTEM</h1>
+
+    <div class="input-group">
+        <input type="text" id="frontInput" placeholder="Từ tiếng Anh">
+        <input type="text" id="backInput" placeholder="Nghĩa tiếng Việt">
+        <button class="btn-primary" onclick="addCard()">Thêm</button>
+    </div>
+
+    <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="card-wrapper">
+        <div class="card" id="card" onclick="flipCard()">
+            <div class="card-face front" id="frontText">Chưa có thẻ</div>
+            <div class="card-face back" id="backText"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-secondary" onclick="prevCard()">← Trước</button>
+        <button class="btn-secondary" onclick="nextCard()">Tiếp →</button>
+        <button class="btn-danger" onclick="deleteCard()">Xoá</button>
+        <button class="btn-secondary" onclick="goBack()">Dashboard</button>
+    </div>
+
+    <div class="stats" id="statsText"></div>
+</div>
+
+<script>
+let cards = JSON.parse(localStorage.getItem("flashcards")) || [];
+let current = 0;
+
+function save(){
+    localStorage.setItem("flashcards",JSON.stringify(cards));
+}
+
+function updateProgress(){
+    const bar=document.getElementById("progressBar");
+    const percent = cards.length===0?0:((current+1)/cards.length)*100;
+    bar.style.width=percent+"%";
+    document.getElementById("statsText").innerText=
+        cards.length===0?"Chưa có thẻ":
+        `Thẻ ${current+1} / ${cards.length}`;
+}
+
+function addCard(){
+    const front=document.getElementById("frontInput").value.trim();
+    const back=document.getElementById("backInput").value.trim();
+    if(!front||!back)return;
+
+    cards.push({front,back});
+    save();
+
+    document.getElementById("frontInput").value="";
+    document.getElementById("backInput").value="";
+    current=cards.length-1;
+    showCard();
+}
+
+function showCard(){
+    const card=document.getElementById("card");
+    card.classList.remove("flip");
+
+    if(cards.length===0){
+        document.getElementById("frontText").innerText="Chưa có thẻ";
+        document.getElementById("backText").innerText="";
+        updateProgress();
+        return;
+    }
+
+    document.getElementById("frontText").innerText=cards[current].front;
+    document.getElementById("backText").innerText=cards[current].back;
+    updateProgress();
+}
+
+function flipCard(){
+    if(cards.length===0)return;
+    document.getElementById("card").classList.toggle("flip");
+}
+
+function nextCard(){
+    if(cards.length===0)return;
+    current=(current+1)%cards.length;
+    showCard();
+}
+
+function prevCard(){
+    if(cards.length===0)return;
+    current=(current-1+cards.length)%cards.length;
+    showCard();
+}
+
+function deleteCard(){
+    if(cards.length===0)return;
+    cards.splice(current,1);
+    if(current>=cards.length) current=0;
+    save();
+    showCard();
+}
+
+function goBack(){
+    window.location.href="dashboard.html";
+}
+
+/* Keyboard shortcuts */
+document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowRight") nextCard();
+    if(e.key==="ArrowLeft") prevCard();
+    if(e.key===" ") flipCard();
+});
+
+showCard();
+</script>
+
+</body>
+</html>

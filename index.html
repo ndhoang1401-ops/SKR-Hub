@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cems Study Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container" id="container">
+
+    <!-- SIGN UP -->
+    <div class="form-container sign-up">
+        <form id="signUpForm">
+            <h1>Create Account</h1>
+            <span>Register to use 3 main features</span>
+
+            <input type="text" id="regName" placeholder="Name" required>
+            <input type="email" id="regEmail" placeholder="Email" required>
+            <input type="password" id="regPassword" placeholder="Password" required>
+
+            <button type="submit">Sign Up</button>
+        </form>
+    </div>
+
+    <!-- SIGN IN -->
+    <div class="form-container sign-in">
+        <form id="signInForm">
+            <h1>Sign In</h1>
+            <span>Login to access the system</span>
+
+            <input type="email" id="loginEmail" placeholder="Email" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+
+    <!-- TOGGLE PANEL -->
+    <div class="toggle-container">
+        <div class="toggle">
+
+            <div class="toggle-panel toggle-left">
+                <h1>Welcome Back</h1>
+                <p>Sign in to continue studying</p>
+                <button class="hidden" id="login">Sign In</button>
+            </div>
+
+            <div class="toggle-panel toggle-right">
+                <h1>Hello, Cems Student</h1>
+                <p>Create account to unlock all features</p>
+                <button class="hidden" id="register">Sign Up</button>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+ <div class="footer">
+        © Created by Nguyễn Doãn Hoàng
+    </div>
+
+<script src="script.js" defer></script>
+</body>
+</html>
