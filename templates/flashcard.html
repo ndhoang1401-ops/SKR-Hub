@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKR-HUB | Flashcards </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== RESET & VARIABLES (giống dashboard) ===== */
+        :root {
+            --sakura-pink: #ff7eb3;
+            --sakura-glow: #ff2d78;
+            --cyber-blue: #00eaff;
+            --cyber-purple: #9d4edd;
+            --bg-dark: #0f0c29;
+            --glass-bg: rgba(255, 126, 179, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --transition-smooth: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            --neon-shadow: 0 0 15px rgba(255, 126, 179, 0.5), 0 0 30px rgba(0, 234, 255, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Quicksand', sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 30% 30%, #2d1b4e 0%, #0f0c29 80%, #1a1a2e 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ===== SAKURA PETALS 3D ===== */
+        .sakura-petal {
+            position: fixed;
+            top: -10%;
+            z-index: 1;
+            pointer-events: none;
+            font-size: 20px;
+            opacity: 0.7;
+            animation: fall3D linear forwards;
+            transform-style: preserve-3d;
+            filter: drop-shadow(0 0 5px rgba(255,126,179,0.5));
+        }
+
+        @keyframes fall3D {
+            0% { transform: translateY(0) rotate(0deg) translateZ(0); opacity: 0.9; }
+            30% { transform: translateY(30vh) rotate(180deg) translateZ(50px); opacity: 0.8; }
+            60% { transform: translateY(60vh) rotate(360deg) translateZ(100px); opacity: 0.6; }
+            100% { transform: translateY(110vh) rotate(720deg) translateZ(200px); opacity: 0; }
+        }
+
+        .sakura-petal.linger {
+            animation: lingerEffect 1.5s ease-out forwards;
+        }
+
+        @keyframes lingerEffect {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 10px gold); }
+            50% { transform: scale(2) rotate(180deg); opacity: 0.8; filter: drop-shadow(0 0 30px hotpink); }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        /* ===== MAIN WRAPPER ===== */
+        .wrapper {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 30px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 10;
+            animation: cardAppear 0.8s ease-out;
+        }
+
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            font-size: clamp(2rem, 5vw, 3rem);
+            background: linear-gradient(90deg, #fff, var(--sakura-pink), var(--cyber-blue), var(--cyber-purple), #fff);
+            background-size: 300% auto;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: waveMove 6s linear infinite;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+        }
+
+        @keyframes waveMove {
+            0% { background-position: 0% center; }
+            100% { background-position: 300% center; }
+        }
+
+        /* ===== DUAL PANEL (nhập đơn + nhập hàng loạt) ===== */
+        .input-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .input-panels { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 25px;
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(5px);
+        }
+
+        .panel h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--cyber-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .single-input {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .single-input .candy-input {
+            width: 100%;
+        }
+
+        .bulk-textarea {
+            width: 100%;
+            min-height: 120px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            border-radius: 20px;
+            padding: 15px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            resize: vertical;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .bulk-textarea:focus {
+            border-color: var(--cyber-blue);
+            box-shadow: 0 0 20px var(--cyber-blue);
+        }
+
+        .bulk-textarea::placeholder {
+            color: rgba(255,255,255,0.5);
+            font-style: italic;
+        }
+
+        .example {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        /* ===== CANDY INPUTS/BUTTONS ===== */
+        .candy-input {
+            padding: 12px 20px;
+            border: 2px solid transparent;
+            border-radius: 50px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: 0.4s;
+        }
+        .candy-input:focus {
+            border-color: var(--sakura-pink);
+            background: rgba(255,126,179,0.2);
+            box-shadow: 0 0 30px var(--sakura-pink);
+            transform: scale(1.02);
+        }
+        .candy-input::placeholder { color: rgba(255,255,255,0.6); }
+
+        .candy-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--sakura-pink), var(--sakura-glow));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-bounce);
+            box-shadow: 0 10px 20px rgba(255,126,179,0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .candy-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 30px rgba(255,126,179,0.5);
+        }
+        .candy-btn.small { padding: 8px 16px; font-size: 0.9rem; }
+        .candy-btn.blue { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+        .candy-btn.purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .candy-btn.red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--sakura-pink), var(--cyber-blue));
+            border-radius: 30px;
+            transition: width 0.5s;
+        }
+
+        /* ===== FLASHCARD 3D ===== */
+        .flashcard-container {
+            perspective: 1500px;
+            margin-bottom: 20px;
+        }
+        .flashcard {
+            width: 100%;
+            height: 260px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+        }
+        .flashcard.flip { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            backface-visibility: hidden;
+            background: linear-gradient(135deg, rgba(255,126,179,0.9), rgba(255,45,120,0.9));
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+        }
+        .card-face.back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, rgba(0,234,255,0.9), rgba(157,78,221,0.9));
+        }
+        .card-face small {
+            font-size: 14px;
+            margin-top: 10px;
+            opacity: 0.8;
+        }
+
+        /* ===== AUTO CONTROLS ===== */
+        .auto-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 60px;
+            padding: 10px 20px;
+            border: 1px solid var(--glass-border);
+        }
+        .auto-controls span { display: flex; align-items: center; gap: 5px; }
+        .auto-controls input[type="range"] {
+            width: 150px;
+            height: 5px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--sakura-pink), var(--cyber-blue));
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .auto-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 0 10px var(--cyber-blue);
+            cursor: pointer;
+        }
+        .auto-controls .candy-btn.small { padding: 6px 12px; }
+
+        /* ===== BOTTOM CONTROLS ===== */
+        .bottom-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .counter {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer-premium {
+            margin-top: 40px;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+            border-radius: 30px;
+        }
+        .motivation-quote {
+            font-style: italic;
+            color: var(--cyber-blue);
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--cyber-blue);
+        }
+        .owner {
+            font-weight: bold;
+            background: linear-gradient(90deg, var(--sakura-pink), var(--cyber-blue));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition-smooth);
+        }
+        .footer-links a:hover {
+            background: var(--sakura-pink);
+            transform: translateY(-3px);
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: auto;
+            max-width: 90%;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            color: #1a1a2e;
+            padding: 12px 30px;
+            border-radius: 60px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(30px);
+            opacity: 0;
+            transition: 0.4s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: linear-gradient(135deg, #00b09b, #96c93d); color: white; }
+        .toast.error { background: linear-gradient(135deg, #ff4d4d, #f9cbca); color: white; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .wrapper { padding: 20px; }
+            .flashcard { height: 200px; }
+            .card-face { font-size: 20px; }
+            .auto-controls { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SAKURA CONTAINER -->
+    <div id="sakura-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></div>
+
+    <div class="wrapper">
+        <h1>FLASHCARD </h1>
+
+        <!-- DUAL INPUT PANELS -->
+        <div class="input-panels">
+            <!-- Single add panel -->
+            <div class="panel">
+                <h3><i class="fas fa-plus-circle" style="color: var(--sakura-pink);"></i> Add Single</h3>
+                <div class="single-input">
+                    <input type="text" id="english" class="candy-input" placeholder="English / Word" autocomplete="off">
+                    <input type="text" id="vietnamese" class="candy-input" placeholder="Vietnamese / Meaning" autocomplete="off">
+                    <button class="candy-btn" id="addBtn"><i class="fas fa-plus"></i> Add Card</button>
+                </div>
+            </div>
+
+            <!-- Bulk import panel -->
+            <div class="panel">
+                <h3><i class="fas fa-layer-group" style="color: var(--cyber-blue);"></i> Bulk Import</h3>
+                <textarea id="bulkText" class="bulk-textarea" placeholder="Enter multiple cards, one per line:&#10;hello, xin chào&#10;goodbye, tạm biệt&#10;love, yêu thương"></textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button class="candy-btn small blue" id="importBtn"><i class="fas fa-file-import"></i> Import</button>
+                    <button class="candy-btn small red" id="clearAllBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
+                </div>
+                <div class="example">💡 Format: <strong>từ, nghĩa</strong> hoặc <strong>từ - nghĩa</strong></div>
+            </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- FLASHCARD -->
+        <div class="flashcard-container">
+            <div class="flashcard" id="flashcard">
+                <div class="card-face front" id="front">🌸 No cards yet</div>
+                <div class="card-face back" id="back"></div>
+            </div>
+        </div>
+
+        <!-- AUTO PLAY/FLIP CONTROLS -->
+        <div class="auto-controls">
+            <span><i class="fas fa-play" style="color: var(--sakura-pink);"></i> Auto:</span>
+            <button class="candy-btn small" id="autoPlayBtn"><i class="fas fa-play"></i> Start</button>
+            <button class="candy-btn small" id="autoFlipBtn"><i class="fas fa-sync-alt"></i> Auto Flip</button>
+            <span style="margin-left: auto;">
+                <i class="fas fa-hourglass-half"></i>
+                <input type="range" id="autoSpeed" min="1" max="10" value="3" step="0.5">
+                <span id="speedDisplay">3.0s</span>
+            </span>
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div class="bottom-controls">
+            <div class="nav-buttons">
+                <button class="candy-btn small" id="prevBtn"><i class="fas fa-arrow-left"></i> Prev</button>
+                <button class="candy-btn small" id="flipBtn"><i class="fas fa-sync-alt"></i> Flip</button>
+                <button class="candy-btn small" id="nextBtn">Next <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="counter" id="counter">0 / 0</div>
+            <div class="nav-buttons">
+                <button class="candy-btn small purple" id="shuffleBtn"><i class="fas fa-random"></i> Shuffle</button>
+                <button class="candy-btn small red" id="deleteBtn"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+
+        <!-- KEYBOARD SHORTCUTS HINT -->
+        <div style="text-align: center; margin-top: 10px; opacity: 0.6; font-size: 0.8rem;">
+            <i class="fas fa-keyboard"></i> ← / → : Navigate &nbsp;|&nbsp; Space : Flip &nbsp;|&nbsp; Enter (in fields) : Add
+        </div>
+
+        <!-- FOOTER PREMIUM -->
+        <div class="footer-premium">
+            <div class="motivation-quote" id="motivationQuote">"The secret of getting ahead is getting started."</div>
+            <p>© 2026 · Mastered by <span class="owner">Nguyễn Doãn Hoàng</span></p>
+            <div class="footer-links">
+                <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="/stats"><i class="fas fa-chart-line"></i> Statistics</a>
+                <a href="/self-learning"><i class="fas fa-brain"></i> Self‑Learning</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ==================== SAKURA 3D ====================
+        function initSakura() {
+            const icons = ["🌸", "💮", "✨", "🌸", "🌸"];
+            const container = document.getElementById('sakura-container') || document.body;
+            function createPetal() {
+                const petal = document.createElement("div");
+                petal.className = "sakura-petal";
+                petal.innerHTML = icons[Math.floor(Math.random() * icons.length)];
+                petal.style.left = Math.random() * 100 + "vw";
+                petal.style.fontSize = Math.random() * 20 + 15 + "px";
+                petal.style.animationDuration = Math.random() * 6 + 6 + "s";
+                petal.style.animationDelay = Math.random() * 2 + "s";
+                petal.style.opacity = Math.random() * 0.6 + 0.4;
+                container.appendChild(petal);
+                petal.addEventListener('mouseenter', () => {
+                    petal.classList.add('linger');
+                    setTimeout(() => petal.remove(), 1000);
+                });
+                setTimeout(() => {
+                    if (Math.random() < 0.15) {
+                        petal.classList.add('linger');
+                        setTimeout(() => petal.remove(), 1000);
+                    } else {
+                        petal.remove();
+                    }
+                }, 8000);
+            }
+            setInterval(() => {
+                if (document.visibilityState === 'visible') createPetal();
+            }, 300);
+        }
+
+        // ==================== QUOTES ====================
+        const quotes = [
+            "The secret of getting ahead is getting started.",
+            "Discipline is the bridge between goals and accomplishment.",
+            "Small progress is still progress.",
+            "Consistency over intensity.",
+            "Your only limit is your mind.",
+            "Every expert was once a beginner.",
+            "Don't watch the clock; do what it does. Keep going.",
+            "Success is the sum of small efforts repeated daily."
+        ];
+        document.getElementById('motivationQuote').innerText = '"' + quotes[Math.floor(Math.random() * quotes.length)] + '"';
+
+        // ==================== FLASHCARD STATE ====================
+        let cards = JSON.parse(localStorage.getItem("flashcards")) || [];
+        let currentIndex = 0;
+        let showingFront = true;
+        let autoPlayInterval = null;
+        let autoFlipInterval = null;
+        let autoPlayActive = false;
+        let autoFlipActive = false;
+
+        // DOM elements
+        const flashcard = document.getElementById("flashcard");
+        const front = document.getElementById("front");
+        const back = document.getElementById("back");
+        const counter = document.getElementById("counter");
+        const progressBar = document.getElementById("progressBar");
+        const speedSlider = document.getElementById("autoSpeed");
+        const speedDisplay = document.getElementById("speedDisplay");
+        const autoPlayBtn = document.getElementById("autoPlayBtn");
+        const autoFlipBtn = document.getElementById("autoFlipBtn");
+
+        // Toast system
+        function showToast(message, type = 'success', duration = 2500) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            toast.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, duration);
+        }
+
+        // Save to localStorage
+        function saveToLocal() {
+            localStorage.setItem("flashcards", JSON.stringify(cards));
+        }
+
+        // Update UI (card content, counter, progress)
+        function updateUI() {
+            if (cards.length === 0) {
+                front.textContent = "🌸 No cards yet";
+                back.textContent = "";
+                counter.textContent = "0 / 0";
+                progressBar.style.width = "0%";
+                return;
+            }
+            // Ensure index valid
+            currentIndex = Math.min(currentIndex, cards.length - 1);
+            currentIndex = Math.max(currentIndex, 0);
+
+            front.textContent = cards[currentIndex].front;
+            back.textContent = cards[currentIndex].back;
+
+            counter.textContent = `${currentIndex + 1} / ${cards.length}`;
+            progressBar.style.width = `${((currentIndex + 1) / cards.length) * 100}%`;
+        }
+
+        // ==================== CARD OPERATIONS ====================
+        function flipCard() {
+            if (cards.length === 0) return;
+            flashcard.classList.toggle("flip");
+            showingFront = !showingFront;
+        }
+
+        function nextCard() {
+            if (cards.length === 0) return;
+            currentIndex = (currentIndex + 1) % cards.length;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            updateUI();
+        }
+
+        function prevCard() {
+            if (cards.length === 0) return;
+            currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            updateUI();
+        }
+
+        function addCard() {
+            const en = document.getElementById("english").value.trim();
+            const vi = document.getElementById("vietnamese").value.trim();
+            if (!en || !vi) {
+                showToast("Please fill both fields", "error");
+                return;
+            }
+            cards.push({ front: en, back: vi });
+            saveToLocal();
+            currentIndex = cards.length - 1;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            document.getElementById("english").value = "";
+            document.getElementById("vietnamese").value = "";
+            updateUI();
+            showToast("Card added!");
+        }
+
+        function deleteCard() {
+            if (cards.length === 0) return;
+            if (!confirm("Delete this card?")) return;
+            cards.splice(currentIndex, 1);
+            saveToLocal();
+            if (currentIndex >= cards.length) currentIndex = cards.length - 1;
+            if (currentIndex < 0) currentIndex = 0;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            updateUI();
+            showToast("Card deleted", "success");
+        }
+
+        function shuffleCards() {
+            if (cards.length === 0) return;
+            // Fisher-Yates
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            saveToLocal();
+            currentIndex = 0;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            updateUI();
+            showToast("Cards shuffled");
+        }
+
+        function clearAll() {
+            if (cards.length === 0) return;
+            if (!confirm("Delete ALL cards?")) return;
+            cards = [];
+            saveToLocal();
+            currentIndex = 0;
+            flashcard.classList.remove("flip");
+            showingFront = true;
+            updateUI();
+            showToast("All cards cleared");
+        }
+
+        // Bulk import
+        function importBulk() {
+            const text = document.getElementById('bulkText').value.trim();
+            if (!text) {
+                showToast("Enter some data", "error");
+                return;
+            }
+            const lines = text.split('\n');
+            let added = 0;
+            lines.forEach(line => {
+                line = line.trim();
+                if (line === '') return;
+                // try to split by comma or dash
+                let parts = line.split(',').map(s => s.trim());
+                if (parts.length < 2) {
+                    parts = line.split('-').map(s => s.trim());
+                }
+                if (parts.length >= 2) {
+                    cards.push({ front: parts[0], back: parts.slice(1).join(' - ') });
+                    added++;
+                }
+            });
+            if (added > 0) {
+                saveToLocal();
+                currentIndex = cards.length - 1;
+                flashcard.classList.remove("flip");
+                showingFront = true;
+                updateUI();
+                showToast(`Imported ${added} cards`);
+                document.getElementById('bulkText').value = '';
+            } else {
+                showToast("No valid cards found", "error");
+            }
+        }
+
+        // ==================== AUTO PLAY/FLIP ====================
+        function getSpeedMs() {
+            return parseFloat(speedSlider.value) * 1000;
+        }
+
+        function updateSpeedDisplay() {
+            speedDisplay.innerText = speedSlider.value + 's';
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayInterval) clearInterval(autoPlayInterval);
+            autoPlayActive = false;
+            autoPlayBtn.innerHTML = '<i class="fas fa-play"></i> Start';
+        }
+
+        function stopAutoFlip() {
+            if (autoFlipInterval) clearInterval(autoFlipInterval);
+            autoFlipActive = false;
+            autoFlipBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto Flip';
+        }
+
+        function startAutoPlay() {
+            if (cards.length === 0) {
+                showToast("No cards to play", "error");
+                return;
+            }
+            stopAutoPlay();
+            autoPlayActive = true;
+            autoPlayBtn.innerHTML = '<i class="fas fa-stop"></i> Stop';
+            autoPlayInterval = setInterval(() => {
+                nextCard();
+            }, getSpeedMs());
+        }
+
+        function startAutoFlip() {
+            if (cards.length === 0) {
+                showToast("No cards to flip", "error");
+                return;
+            }
+            stopAutoFlip();
+            autoFlipActive = true;
+            autoFlipBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Flip';
+            autoFlipInterval = setInterval(() => {
+                flipCard();
+            }, getSpeedMs() / 2); // flip nhanh hơn một chút
+        }
+
+        function toggleAutoPlay() {
+            if (autoPlayActive) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        }
+
+        function toggleAutoFlip() {
+            if (autoFlipActive) {
+                stopAutoFlip();
+            } else {
+                startAutoFlip();
+            }
+        }
+
+        // Speed slider change
+        speedSlider.addEventListener('input', () => {
+            updateSpeedDisplay();
+            if (autoPlayActive) {
+                stopAutoPlay();
+                startAutoPlay();
+            }
+            if (autoFlipActive) {
+                stopAutoFlip();
+                startAutoFlip();
+            }
+        });
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+        document.addEventListener('keydown', (e) => {
+            // Không trigger nếu đang gõ trong input/textarea
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch(e.key) {
+                case 'ArrowLeft': prevCard(); e.preventDefault(); break;
+                case 'ArrowRight': nextCard(); e.preventDefault(); break;
+                case ' ': // Space
+                    e.preventDefault();
+                    flipCard();
+                    break;
+            }
+        });
+
+        // Enter trong input add
+        document.getElementById('english').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCard();
+        });
+        document.getElementById('vietnamese').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCard();
+        });
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('addBtn').addEventListener('click', addCard);
+        document.getElementById('nextBtn').addEventListener('click', nextCard);
+        document.getElementById('prevBtn').addEventListener('click', prevCard);
+        document.getElementById('flipBtn').addEventListener('click', flipCard);
+        document.getElementById('deleteBtn').addEventListener('click', deleteCard);
+        document.getElementById('shuffleBtn').addEventListener('click', shuffleCards);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+        document.getElementById('importBtn').addEventListener('click', importBulk);
+        flashcard.addEventListener('click', flipCard);
+
+        autoPlayBtn.addEventListener('click', toggleAutoPlay);
+        autoFlipBtn.addEventListener('click', toggleAutoFlip);
+
+        // Khởi tạo speed display
+        updateSpeedDisplay();
+
+        // Khởi tạo sakura và UI
+        initSakura();
+        updateUI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKR-HUB | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body class="fade-in">
+
+    <!-- WELCOME OVERLAY -->
+    <div id="welcome-overlay">
+        <div class="welcome-text">SKR‑HUB</div>
+        <div class="welcome-sub">Welcome back, {{ name }}!</div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+        <h1 class="title-wave">SKR‑HUB DASHBOARD</h1>
+        <p id="daily-quote" class="quote-style"></p>
+    </header>
+
+    <!-- QUICK ACCESS -->
+    <div style="position: relative; max-width: 1300px; margin: 0 auto;">
+        <nav class="quick-nav">
+            <a href="/self-learning" class="nav-btn"><i class="fas fa-brain"></i> Self‑Learning</a>
+            <a href="/flashcard" class="nav-btn"><i class="fas fa-layer-group"></i> Flashcards</a>
+            <a href="/stats" class="nav-btn"><i class="fas fa-chart-line"></i> Statistics</a>
+            <a href="/logout" id="logout-btn" class="nav-btn logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+
+    <!-- DASHBOARD GRID -->
+    <div class="dashboard-grid">
+        <!-- CARD: LEVEL & XP -->
+        <div class="card">
+            <h2><i class="fas fa-medal"></i> MASTERY LEVEL</h2>
+            <div class="lvl-badge" id="lvlNumber">1</div>
+            <p style="text-align: center; margin-top: 10px;">RANK: <span id="rankName" style="color: var(--cyber-blue);">⚡ TÂN BINH</span></p>
+            <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+            <p style="font-size: 12px;">XP: <span id="currentXp">0</span> / 100</p>
+            <div id="rankMessage" class="rank-message">Every master was once a beginner. Keep going!</div>
+        </div>
+
+        <!-- CARD: POMODORO PRO -->
+        <div class="card">
+            <h2><i class="fas fa-clock"></i> FOCUS TIMER</h2>
+            <div class="timer-settings">
+                <input type="number" id="setH" placeholder="00" min="0" max="99" class="candy-input" value="0"> :
+                <input type="number" id="setM" placeholder="25" min="0" max="59" class="candy-input" value="25"> :
+                <input type="number" id="setS" placeholder="00" min="0" max="59" class="candy-input" value="0">
+            </div>
+            <div class="timer-circle">
+                <div class="timer-display" id="timerDisplay">25:00</div>
+                <div class="timer-label">FOCUS</div>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <select id="alarmSound" class="candy-select" style="width:100%; margin-bottom:10px;">
+                    <optgroup label="🔊 Meme Sounds">
+                        <option value="https://www.myinstants.com/media/sounds/vine-boom.mp3">Vine Boom</option>
+                        <option value="https://www.myinstants.com/media/sounds/fbi-open-up-sfx.mp3">FBI Open Up</option>
+                        <option value="https://www.myinstants.com/media/sounds/among-us-drip.mp3">Among Us Drip</option>
+                        <option value="https://www.myinstants.com/media/sounds/megalovania_3.mp3">Megalovania</option>
+                        <option value="https://www.myinstants.com/media/sounds/roblox-death-sound_1.mp3">Roblox Death</option>
+                        <option value="https://www.myinstants.com/media/sounds/minecraft-ghast_1.mp3">Minecraft Ghast</option>
+                        <option value="https://www.myinstants.com/media/sounds/geometry-dash-practice-mode_1.mp3">Geometry Dash</option>
+                    </optgroup>
+                    <optgroup label="🔔 Classic Chimes">
+                        <option value="https://www.myinstants.com/media/sounds/ding-sound-effect_2.mp3">Ding</option>
+                        <option value="https://www.myinstants.com/media/sounds/notification-sound-1.mp3">Notification</option>
+                        <option value="https://www.myinstants.com/media/sounds/alarm-clock-short_1.mp3">Alarm Clock</option>
+                        <option value="https://www.myinstants.com/media/sounds/morning-alarm.mp3">Morning Alarm</option>
+                        <option value="https://www.myinstants.com/media/sounds/gentle-chime.mp3">Gentle Chime</option>
+                        <option value="https://www.myinstants.com/media/sounds/bell-sound.mp3">Bell</option>
+                        <option value="https://www.myinstants.com/media/sounds/positive-notification.mp3">Positive</option>
+                    </optgroup>
+                </select>
+            </div>
+            <!-- Volume sẽ được thêm bằng JS -->
+            <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                <button class="candy-btn" onclick="startTimer()"><i class="fas fa-play"></i> START</button>
+                <button class="candy-btn blue" onclick="pauseTimer()"><i class="fas fa-pause"></i> PAUSE</button>
+                <button class="candy-btn" onclick="resetTimer()"><i class="fas fa-undo"></i> RESET</button>
+            </div>
+        </div>
+
+        <!-- CARD: FOCUS ZONE (ĐÃ SỬA) -->
+        <div class="card">
+            <h2><i class="fas fa-crosshairs"></i> FOCUS ZONE</h2>
+            <p style="margin-bottom:15px;">Eliminate distractions. Enter deep work.</p>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="candy-btn" onclick="toggleFocusMode()" style="flex:1;">
+                    <i class="fas fa-eye"></i> ACTIVATE FOCUS
+                </button>
+                <div class="focus-stats">
+                    <div style="font-size:13px;">Focus count</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="focusCount" style="font-size:24px; font-weight:700; color:var(--cyber-blue);">0</span>
+                        <button class="candy-btn small" onclick="resetFocusCount()" title="Reset focus count"><i class="fas fa-undo-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top:15px; font-size:13px; opacity:0.7;">✨ Focus mode hides all other cards, only timer remains. Click EXIT FOCUS button to return.</p>
+        </div>
+
+        <!-- CARD: NOTES -->
+        <div class="card">
+            <h2><i class="fas fa-pen"></i> NOTES</h2>
+            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                <input type="text" id="noteInput" placeholder="Write a note..." class="candy-input">
+                <button class="candy-btn" onclick="addNote()"><i class="fas fa-plus"></i></button>
+            </div>
+            <div id="noteList"></div>
+        </div>
+
+        <!-- CARD: ACHIEVEMENTS & STREAK -->
+        <div class="card">
+            <h2><i class="fas fa-trophy"></i> ACHIEVEMENTS</h2>
+            <p>🔥 Current streak: <span id="streakCount">0</span> days</p>
+            <div class="achievements-container" id="achievements-container"></div>
+            <p style="margin-top: 10px;">🎯 Daily goal: <span id="goalDisplay">0</span> / <span id="goalTarget">30</span> min</p>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="goalInput" placeholder="Goal (min)" min="1" value="30" class="candy-input">
+                <button class="candy-btn" onclick="setDailyGoal()">Set</button>
+            </div>
+        </div>
+
+        <!-- CARD: YOUTUBE MUSIC -->
+        <div class="card">
+            <h2><i class="fas fa-music"></i> MUSIC ZONE</h2>
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <input type="text" id="ytLink" placeholder="Paste YouTube URL..." class="candy-input">
+                <button class="candy-btn" onclick="loadYouTube()"><i class="fas fa-play"></i> PLAY</button>
+            </div>
+            <div id="yt-player-container"></div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer-premium">
+        <p>© 2026 · Mastered by <span class="owner">Nguyễn Doãn Hoàng</span></p>
+        <p style="font-style: italic; opacity: 0.7;">"Discipline is the bridge between goals and accomplishment."</p>
+    </footer>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKR-HUB </title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="brand-logo">SKR-HUB</div>
+    <h1 class="center-title">WELCOME BACK</h1>
+
+    <div class="container" id="mainContainer">
+        <!-- Sign In Form (bên trái) -->
+        <div class="form-container sign-in">
+            <form id="loginForm">
+                <h2>Sign In</h2>
+                <div class="input-group">
+                    <input type="email" name="email" placeholder="Email address" required>
+                    <i>✉️</i>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                    <i>🔒</i>
+                </div>
+                <button type="submit" class="action-btn" id="loginBtn">Login</button>
+                <a href="/forgot-password" class="forgot-password">Forgot password?</a>
+            </form>
+        </div>
+
+        <!-- Sign Up Form (bên phải, bị ẩn) -->
+        <div class="form-container sign-up">
+            <form id="regForm">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <input type="text" name="username" placeholder="Username" required>
+                    <i>👤</i>
+                </div>
+                <div class="input-group">
+                    <input type="email" name="email" placeholder="Email" required>
+                    <i>✉️</i>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                    <i>🔒</i>
+                </div>
+                <button type="submit" class="action-btn" id="signupBtn">Sign Up</button>
+            </form>
+        </div>
+
+        <!-- Overlay Container (trượt qua lại) -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h2>Hello, Friend!</h2>
+                    <p>Enter your personal details and start your journey with us</p>
+                    <button class="ghost" id="signInBtn">Sign In</button>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h2>Welcome Back!</h2>
+                    <p>To keep connected with us please login with your personal info</p>
+                    <button class="ghost" id="signUpBtn">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 SKR-HUB. All rights reserved. Designed by Nguyễn Doãn Hoàng</div>
+    <div class="toast" id="toastMsg"></div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

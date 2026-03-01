@@ -1,0 +1,371 @@
+/* ===== VARIABLES ===== */
+:root {
+    --primary: #9f7aea;
+    --primary-dark: #805ad5;
+    --secondary: #fbb6ce;
+    --dark: #2d3748;
+    --light: #f7fafc;
+    --glass: rgba(255, 255, 255, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== GLOBAL ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background hình học tinh tế */
+body::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: moveBg 60s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes moveBg {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-50%, -50%); }
+}
+
+/* Brand logo */
+.brand-logo {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 2px;
+    z-index: 10;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+/* Title chính */
+.center-title {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+/* ===== CONTAINER CHÍNH ===== */
+.container {
+    position: relative;
+    width: 1000px;
+    height: 600px;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border-radius: 40px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    z-index: 5;
+}
+
+/* ===== FORM CONTAINER ===== */
+.form-container {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 50px;
+    transition: var(--transition);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sign In ở bên trái */
+.sign-in {
+    left: 0;
+    z-index: 2;
+}
+
+/* Sign Up ở bên phải, nhưng bị ẩn đi (opacity = 0) */
+.sign-up {
+    left: 50%;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 1;
+}
+
+/* Khi container có class "active", Sign In ẩn đi, Sign Up hiện ra */
+.container.active .sign-in {
+    opacity: 0;
+    visibility: hidden;
+    z-index: 1;
+}
+
+.container.active .sign-up {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+}
+
+/* Heading */
+h2 {
+    font-size: 36px;
+    margin-bottom: 30px;
+    color: white;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+/* ===== INPUT GROUP ===== */
+.input-group {
+    width: 100%;
+    margin: 15px 0;
+    position: relative;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 16px 20px 16px 50px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    font-size: 15px;
+    color: white;
+    transition: all 0.3s;
+}
+
+.input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 300;
+}
+
+.input-group i {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 18px;
+    opacity: 0.7;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+}
+
+.input-group input:focus + i {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* ===== BUTTON ===== */
+button {
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    outline: none;
+}
+
+.action-btn {
+    margin-top: 30px;
+    padding: 16px 50px;
+    border-radius: 16px;
+    background: white;
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 16px;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 250px;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 30px -5px rgba(0,0,0,0.3);
+    background: var(--primary);
+    color: white;
+}
+
+.action-btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.action-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid var(--primary-dark);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== OVERLAY ===== */
+.overlay-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: var(--transition);
+    z-index: 10;
+}
+
+.container.active .overlay-container {
+    transform: translateX(-100%);
+}
+
+.overlay {
+    background: linear-gradient(135deg, rgba(159, 122, 234, 0.9) 0%, rgba(251, 182, 206, 0.9) 100%);
+    backdrop-filter: blur(5px);
+    height: 100%;
+    width: 200%;
+    position: relative;
+    left: -100%;
+    transition: var(--transition);
+}
+
+.container.active .overlay {
+    transform: translateX(50%);
+}
+
+.overlay-panel {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    padding: 0 40px;
+}
+
+.overlay-right { right: 0; }
+.overlay-left { left: 0; }
+
+.overlay-panel h2 {
+    font-size: 36px;
+    margin-bottom: 15px;
+}
+
+.overlay-panel p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    opacity: 0.9;
+    line-height: 1.6;
+}
+
+.ghost {
+    padding: 12px 40px;
+    border-radius: 12px;
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    backdrop-filter: blur(5px);
+}
+
+.ghost:hover {
+    background: white;
+    color: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+/* ===== FORGOT PASSWORD LINK ===== */
+.forgot-password {
+    margin-top: 15px;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.forgot-password:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+/* ===== TOAST ===== */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: white;
+    padding: 14px 30px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    color: var(--dark);
+    font-weight: 500;
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.4s;
+    z-index: 1000;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast.error {
+    background: #f56565;
+    color: white;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    font-weight: 300;
+    z-index: 10;
+}
