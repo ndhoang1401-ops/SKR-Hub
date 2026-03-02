@@ -6,10 +6,40 @@ const regForm = document.getElementById('regForm');
 const loginForm = document.getElementById('loginForm');
 const toast = document.getElementById('toastMsg');
 
+// Tạo mobile switch links nếu chưa có
+function addMobileSwitches() {
+    const signInForm = document.querySelector('.sign-in form');
+    const signUpForm = document.querySelector('.sign-up form');
+
+    if (signInForm && !document.querySelector('.sign-in .mobile-switch')) {
+        const switchToSignUp = document.createElement('p');
+        switchToSignUp.className = 'mobile-switch';
+        switchToSignUp.innerHTML = 'Don\'t have an account? <a href="#" id="mobileSignUp">Sign Up</a>';
+        signInForm.appendChild(switchToSignUp);
+    }
+
+    if (signUpForm && !document.querySelector('.sign-up .mobile-switch')) {
+        const switchToSignIn = document.createElement('p');
+        switchToSignIn.className = 'mobile-switch';
+        switchToSignIn.innerHTML = 'Already have an account? <a href="#" id="mobileSignIn">Sign In</a>';
+        signUpForm.appendChild(switchToSignIn);
+    }
+
+    // Gắn sự kiện cho mobile switch
+    document.getElementById('mobileSignUp')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        container.classList.add('active');
+    });
+
+    document.getElementById('mobileSignIn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        container.classList.remove('active');
+    });
+}
+
 // ===== TOGGLE PANELS =====
 signUpBtn.addEventListener('click', () => {
     container.classList.add('active');
-    // Thêm hiệu ứng nhẹ cho container (tùy chọn)
 });
 
 signInBtn.addEventListener('click', () => {
@@ -17,15 +47,13 @@ signInBtn.addEventListener('click', () => {
 });
 
 // ===== HIỂN THỊ TOAST =====
-function showToast(message, isError = false) {
-    toast.textContent = message;
+function showToast(message, type = 'success', duration = 3000) {
+    toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
     toast.classList.add('show');
-    if (isError) toast.classList.add('error');
-    else toast.classList.remove('error');
-    
+    toast.className = 'toast ' + type;
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
+    }, duration);
 }
 
 // ===== XỬ LÝ ĐĂNG KÝ =====
@@ -42,19 +70,19 @@ regForm.addEventListener('submit', async (e) => {
     const password = formData.get('password');
     
     if (username.length < 3) {
-        showToast('Tên người dùng phải có ít nhất 3 ký tự', true);
+        showToast('Username must be at least 3 characters', 'error');
         btn.classList.remove('loading');
         return;
     }
     
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-        showToast('Email không hợp lệ', true);
+        showToast('Invalid email format', 'error');
         btn.classList.remove('loading');
         return;
     }
     
     if (password.length < 6) {
-        showToast('Mật khẩu phải có ít nhất 6 ký tự', true);
+        showToast('Password must be at least 6 characters', 'error');
         btn.classList.remove('loading');
         return;
     }
@@ -65,18 +93,18 @@ regForm.addEventListener('submit', async (e) => {
             body: formData
         });
         
+        const data = await res.json();
         if (res.ok) {
-            showToast('✅ Đăng ký thành công! Vui lòng đăng nhập.');
+            showToast('✅ Registration successful! Please login.', 'success');
             setTimeout(() => {
                 container.classList.remove('active'); // quay về sign-in
-                regForm.reset(); // reset form
+                regForm.reset();
             }, 1500);
         } else {
-            const err = await res.text();
-            showToast('❌ Lỗi: ' + err, true);
+            showToast('❌ ' + (data.error || 'Registration failed'), 'error');
         }
     } catch (err) {
-        showToast('❌ Không thể kết nối server', true);
+        showToast('❌ Cannot connect to server', 'error');
     } finally {
         btn.classList.remove('loading');
     }
@@ -90,12 +118,11 @@ loginForm.addEventListener('submit', async (e) => {
 
     const formData = new FormData(loginForm);
     
-    // Validation cơ bản
     const email = formData.get('email');
     const password = formData.get('password');
     
     if (!email || !password) {
-        showToast('Vui lòng nhập đầy đủ thông tin', true);
+        showToast('Please fill all fields', 'error');
         btn.classList.remove('loading');
         return;
     }
@@ -106,22 +133,32 @@ loginForm.addEventListener('submit', async (e) => {
             body: formData
         });
         
+        const data = await res.json();
         if (res.ok) {
-            showToast('🎉 Đăng nhập thành công! Đang chuyển hướng...');
+            showToast('🎉 Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 window.location.href = '/dashboard.html';
             }, 1000);
         } else {
-            const err = await res.text();
-            showToast('❌ ' + err, true);
+            showToast('❌ ' + (data.error || 'Invalid credentials'), 'error');
         }
     } catch (err) {
-        showToast('❌ Lỗi kết nối server', true);
+        showToast('❌ Network error', 'error');
     } finally {
         btn.classList.remove('loading');
     }
 });
 
-// ===== HIỆU ỨNG GÕ CHỮ CHO PLACEHOLDER (TÙY CHỌN) =====
-// Không cần thiết, nhưng nếu muốn thêm chút "hay ho"
-console.log('SKR-HUB Login ready');
+// Khởi tạo mobile switches
+addMobileSwitches();
+
+// Thêm hiệu ứng focus cho input
+const inputs = document.querySelectorAll('.input-group input');
+inputs.forEach(input => {
+    input.addEventListener('focus', () => {
+        input.parentElement.style.transform = 'scale(1.02)';
+    });
+    input.addEventListener('blur', () => {
+        input.parentElement.style.transform = 'scale(1)';
+    });
+});
