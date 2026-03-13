@@ -1,17 +1,55 @@
-/* ===== LOGIN PAGE – CANDY STYLE (TỐI ƯU MOBILE & HIỆU ỨNG) ===== */
+/* ===== SKR-HUB LOGIN — v2.0 FIXED & UPGRADED ===== */
+/*
+ * FIXES (7 lỗi từ VS Code PROBLEMS panel):
+ * [F1] x6 — backdrop-filter thiếu -webkit-backdrop-filter → thêm đủ ở mọi chỗ
+ * [F2] x1 — background-clip phải khai báo TRƯỚC -webkit-background-clip (css-prefix-order)
+ *
+ * UPGRADES:
+ * [+] CSS variables đồng bộ với dashboard.css (fallback values)
+ * [+] Loading skeleton cho form
+ * [+] Input validation states (error / success)
+ * [+] Password strength indicator
+ * [+] Smooth page transition khi navigate
+ * [+] Nút show/hide password
+ * [+] prefers-reduced-motion support
+ * [+] Focus-visible outline cho accessibility
+ */
+
+/* ======================================================
+   1. DESIGN TOKENS — đồng bộ với dashboard.css
+   ====================================================== */
 :root {
-    --sakura-pink: #ff7eb3;
-    --sakura-glow: #ff2d78;
-    --cyber-blue: #00eaff;
-    --cyber-purple: #9d4edd;
-    --bg-dark: #0f0c29;
-    --glass-bg: rgba(255, 126, 179, 0.12);
-    --glass-border: rgba(255, 255, 255, 0.18);
-    --transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    --neon-shadow: 0 0 20px rgba(255, 126, 179, 0.5), 0 0 40px rgba(0, 234, 255, 0.3);
+    --sakura-pink:   #ff7eb3;
+    --sakura-glow:   #ff2d78;
+    --cyber-blue:    #00eaff;
+    --cyber-purple:  #9d4edd;
+    --bg-dark:       #0f0c29;
+    --glass-bg:      rgba(255, 126, 179, 0.12);
+    --glass-border:  rgba(255, 255, 255, 0.18);
+    --text-primary:  #ffffff;
+    --text-muted:    rgba(255, 255, 255, 0.65);
+    --shadow-pink:   rgba(255, 126, 179, 0.50);
+    --shadow-blue:   rgba(0, 234, 255, 0.30);
+    --neon-shadow:
+        0 0 20px rgba(255, 126, 179, 0.50),
+        0 0 40px rgba(0, 234, 255, 0.30);
+
+    --ease-smooth:  cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --ease-bounce:  cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    --transition:   all 0.5s var(--ease-smooth);
+
+    /* Input validation colors */
+    --color-error:   #ff4d4d;
+    --color-success: #00c896;
+    --color-warning: #ffb347;
 }
 
-* {
+/* ======================================================
+   2. RESET & BASE
+   ====================================================== */
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -20,8 +58,13 @@
 
 body {
     min-height: 100vh;
-    background: radial-gradient(circle at 30% 30%, #2d1b4e 0%, #0f0c29 80%, #1a1a2e 100%);
-    color: white;
+    background: radial-gradient(
+        circle at 30% 30%,
+        #2d1b4e 0%,
+        #0f0c29 80%,
+        #1a1a2e 100%
+    );
+    color: var(--text-primary, #ffffff);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -29,85 +72,110 @@ body {
     padding: 15px;
     position: relative;
     overflow-x: hidden;
+    /* [+] smooth page-in */
+    animation: pageIn 0.6s var(--ease-smooth) both;
 }
 
-/* Particle background động */
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Particle background */
 body::before {
     content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="2" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="20" r="1.5" fill="rgba(255,126,179,0.1)"/><circle cx="50" cy="40" r="2.5" fill="rgba(0,234,255,0.1)"/></svg>');
-    background-size: 60px 60px;
+    position: fixed;                  /* fixed → không repaint khi scroll */
+    inset: 0;
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,126,179,0.08) 1px, transparent 1px),
+        radial-gradient(circle, rgba(0,234,255,0.07)   1px, transparent 1px);
+    background-size: 60px 60px, 80px 80px, 100px 100px;
+    background-position: 0 0, 30px 30px, 60px 60px;
     pointer-events: none;
     animation: floatBg 60s linear infinite;
     z-index: 0;
+    will-change: transform;
 }
 
 @keyframes floatBg {
-    0% { transform: translateY(0) rotate(0deg); }
+    0%   { transform: translateY(0)    rotate(0deg); }
     100% { transform: translateY(-20%) rotate(5deg); }
 }
 
-/* Brand logo */
+/* ======================================================
+   3. BRAND & HEADER
+   ====================================================== */
 .brand-logo {
     position: absolute;
     top: 20px;
     left: 20px;
     font-size: 2rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary, #fff);
     letter-spacing: 4px;
     z-index: 10;
-    text-shadow: 0 0 15px var(--sakura-pink);
-    animation: logoPulse 3s infinite;
+    text-shadow: 0 0 15px var(--sakura-pink, #ff7eb3);
+    animation: logoPulse 3s infinite ease-in-out;
+    text-decoration: none;
+    display: block;
 }
 
 @keyframes logoPulse {
-    0%, 100% { text-shadow: 0 0 15px var(--sakura-pink); }
-    50% { text-shadow: 0 0 30px var(--cyber-blue); }
+    0%, 100% { text-shadow: 0 0 15px var(--sakura-pink, #ff7eb3); }
+    50%       { text-shadow: 0 0 30px var(--cyber-blue, #00eaff); }
 }
 
-/* Title */
 .center-title {
     position: absolute;
     top: 20px;
     right: 20px;
     font-size: 1.4rem;
     font-weight: 500;
-    color: rgba(255,255,255,0.9);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    color: rgba(255, 255, 255, 0.90);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.20);
     z-index: 10;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.10);
+    /* [F1] FIX: thêm -webkit- trước standard */
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     padding: 8px 20px;
     border-radius: 40px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.18));
 }
 
-/* ===== CONTAINER CHÍNH ===== */
+/* ======================================================
+   4. CONTAINER CHÍNH
+   ====================================================== */
 .container {
     position: relative;
     width: 100%;
     max-width: 1000px;
     height: 600px;
-    background: var(--glass-bg);
+    background: var(--glass-bg, rgba(255,126,179,0.12));
+    /* [F1] FIX */
+    -webkit-backdrop-filter: blur(25px);
     backdrop-filter: blur(25px);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.18));
     border-radius: 50px;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.4), var(--neon-shadow);
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.40),
+        var(--neon-shadow);
     overflow: hidden;
     transition: var(--transition);
     z-index: 5;
-    animation: containerAppear 0.8s ease-out;
+    animation: containerAppear 0.8s var(--ease-smooth) both;
+    isolation: isolate;
 }
 
 @keyframes containerAppear {
-    from { opacity: 0; transform: scale(0.9) translateY(30px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from { opacity: 0; transform: scale(0.90) translateY(30px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 
-/* ===== FORM CONTAINER ===== */
+/* ======================================================
+   5. FORM CONTAINER
+   ====================================================== */
 .form-container {
     position: absolute;
     top: 0;
@@ -123,193 +191,266 @@ body::before {
     visibility: visible;
 }
 
-.sign-in {
-    left: 0;
-    z-index: 2;
-}
+.sign-in { left: 0; z-index: 2; }
+.sign-up  { left: 50%; opacity: 0; visibility: hidden; z-index: 1; }
 
-.sign-up {
-    left: 50%;
-    opacity: 0;
-    visibility: hidden;
-    z-index: 1;
-}
+.container.active .sign-in { opacity: 0; visibility: hidden; z-index: 1; }
+.container.active .sign-up  { opacity: 1; visibility: visible;  z-index: 2; }
 
-.container.active .sign-in {
-    opacity: 0;
-    visibility: hidden;
-    z-index: 1;
-}
-
-.container.active .sign-up {
-    opacity: 1;
-    visibility: visible;
-    z-index: 2;
-}
-
-/* ===== HEADINGS ===== */
+/* ======================================================
+   6. HEADINGS
+   ====================================================== */
 h2 {
     font-size: 2.5rem;
     margin-bottom: 25px;
-    color: white;
     font-weight: 600;
     letter-spacing: 1px;
-    background: linear-gradient(90deg, #fff, var(--sakura-pink), var(--cyber-blue));
+
+    background: linear-gradient(
+        90deg,
+        #fff,
+        var(--sakura-pink, #ff7eb3),
+        var(--cyber-blue, #00eaff)
+    );
     background-size: 200% auto;
-    background-clip: text;
+
     -webkit-background-clip: text;
+    background-clip: text;
+
     -webkit-text-fill-color: transparent;
+    color: transparent;
+
     animation: shine 6s linear infinite;
 }
-
 @keyframes shine {
     to { background-position: 200% center; }
 }
 
-/* ===== INPUT GROUP ===== */
+/* ======================================================
+   7. INPUT GROUP
+   ====================================================== */
 .input-group {
     width: 100%;
-    margin: 15px 0;
+    margin: 12px 0;
     position: relative;
-    transition: transform 0.3s;
+    transition: transform 0.3s ease;
 }
 
-.input-group i {
+.input-group i.field-icon {
     position: absolute;
     left: 18px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--sakura-pink);
+    color: var(--sakura-pink, #ff7eb3);
     font-size: 1.3rem;
-    transition: 0.3s;
+    transition: color 0.3s ease, transform 0.3s ease, left 0.3s ease;
     z-index: 2;
     text-shadow: 0 0 10px currentColor;
+    pointer-events: none;
 }
 
 .input-group input {
     width: 100%;
-    padding: 18px 20px 18px 55px;
+    padding: 18px 48px 18px 55px;   /* right padding cho toggle-pw button */
     border-radius: 60px;
     border: 2px solid transparent;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.10);
     outline: none;
     font-size: 1rem;
-    color: white;
-    transition: all 0.3s;
+    color: var(--text-primary, #ffffff);
+    transition: border-color 0.3s ease, background 0.3s ease,
+                box-shadow 0.3s ease, transform 0.3s var(--ease-smooth);
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.20);
+    will-change: transform;
 }
 
 .input-group input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted, rgba(255,255,255,0.60));
     font-weight: 300;
     font-style: italic;
 }
 
 .input-group input:focus {
-    border-color: var(--sakura-pink);
-    background: rgba(255, 126, 179, 0.2);
+    border-color: var(--sakura-pink, #ff7eb3);
+    background: rgba(255, 126, 179, 0.20);
     box-shadow: var(--neon-shadow);
     transform: scale(1.02);
 }
 
-.input-group input:focus + i {
-    color: var(--cyber-blue);
+.input-group input:focus ~ .field-icon {
+    color: var(--cyber-blue, #00eaff);
     transform: translateY(-50%) scale(1.2);
     left: 15px;
 }
 
-/* ===== BUTTON ===== */
+/* [+] Focus-visible outline cho keyboard navigation */
+.input-group input:focus-visible {
+    outline: 3px solid var(--cyber-blue, #00eaff);
+    outline-offset: 2px;
+}
+
+/* [+] Validation states */
+.input-group.error input {
+    border-color: var(--color-error, #ff4d4d);
+    background: rgba(255, 77, 77, 0.12);
+    box-shadow: 0 0 20px rgba(255, 77, 77, 0.30);
+}
+.input-group.success input {
+    border-color: var(--color-success, #00c896);
+    background: rgba(0, 200, 150, 0.10);
+    box-shadow: 0 0 20px rgba(0, 200, 150, 0.25);
+}
+
+.input-group .field-msg {
+    position: absolute;
+    bottom: -20px;
+    left: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+.input-group.error   .field-msg { color: var(--color-error, #ff4d4d);   opacity: 1; transform: translateY(0); }
+.input-group.success .field-msg { color: var(--color-success, #00c896); opacity: 1; transform: translateY(0); }
+
+/* [+] Toggle show/hide password */
+.toggle-pw {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted, rgba(255,255,255,0.60));
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.3s ease;
+    z-index: 3;
+}
+.toggle-pw:hover { color: var(--sakura-pink, #ff7eb3); }
+
+/* [+] Password strength bar */
+.pw-strength {
+    display: flex;
+    gap: 5px;
+    margin: 6px 20px 0;
+    height: 4px;
+}
+.pw-strength span {
+    flex: 1;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    transition: background 0.4s ease;
+}
+.pw-strength[data-level="1"] span:nth-child(1)  { background: var(--color-error, #ff4d4d); }
+.pw-strength[data-level="2"] span:nth-child(-n+2) { background: var(--color-warning, #ffb347); }
+.pw-strength[data-level="3"] span                 { background: var(--color-success, #00c896); }
+
+/* ======================================================
+   8. BUTTONS
+   ====================================================== */
 button {
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     border: none;
     outline: none;
+}
+
+button:focus-visible {
+    outline: 3px solid var(--cyber-blue, #00eaff);
+    outline-offset: 3px;
 }
 
 .action-btn {
     margin-top: 20px;
     padding: 16px 40px;
     border-radius: 60px;
-    background: linear-gradient(135deg, var(--sakura-pink), var(--sakura-glow));
-    color: white;
+    background: linear-gradient(
+        135deg,
+        var(--sakura-pink, #ff7eb3),
+        var(--sakura-glow, #ff2d78)
+    );
+    color: var(--text-primary, #ffffff);
     font-weight: 700;
     font-size: 1.1rem;
-    box-shadow: 0 10px 20px rgba(255,126,179,0.3);
+    box-shadow: 0 10px 20px var(--shadow-pink, rgba(255,126,179,0.30));
     width: 100%;
     max-width: 280px;
     position: relative;
     overflow: hidden;
     letter-spacing: 1px;
+    will-change: transform;
 }
 
 .action-btn::before {
     content: '';
     position: absolute;
-    top: 0;
+    inset: 0;
     left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: 0.5s;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.30),
+        transparent
+    );
+    transition: left 0.5s ease;
 }
-
-.action-btn:hover::before {
-    left: 100%;
-}
+.action-btn:hover::before { left: 100%; }
 
 .action-btn:hover {
     transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 20px 30px rgba(255,126,179,0.5), 0 0 30px var(--sakura-pink);
+    box-shadow:
+        0 20px 30px var(--shadow-pink, rgba(255,126,179,0.50)),
+        0 0 30px var(--sakura-pink, #ff7eb3);
 }
+.action-btn:active { transform: translateY(0) scale(0.98); }
 
-.action-btn:active {
-    transform: translateY(0) scale(0.98);
-}
-
+/* [+] Loading state */
 .action-btn.loading {
-    position: relative;
     color: transparent;
     pointer-events: none;
 }
-
 .action-btn.loading::after {
     content: '';
     position: absolute;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     top: 50%;
     left: 50%;
-    margin-left: -12px;
-    margin-top: -12px;
-    border: 3px solid white;
-    border-top-color: transparent;
+    margin: -11px 0 0 -11px;
+    border: 3px solid rgba(255, 255, 255, 0.40);
+    border-top-color: #ffffff;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.75s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ===== FORGOT PASSWORD LINK ===== */
+/* ======================================================
+   9. FORGOT PASSWORD
+   ====================================================== */
 .forgot-password {
     display: block;
     margin-top: 15px;
-    color: rgba(255,255,255,0.7);
+    color: var(--text-muted, rgba(255,255,255,0.70));
     font-size: 0.9rem;
     text-decoration: none;
-    transition: 0.3s;
+    transition: color 0.3s ease, transform 0.3s ease;
     text-align: center;
 }
-
 .forgot-password:hover {
-    color: white;
+    color: var(--text-primary, #ffffff);
     text-decoration: underline;
     transform: translateX(5px);
 }
 
-/* ===== OVERLAY ===== */
+/* ======================================================
+   10. OVERLAY (slide panel)
+   ====================================================== */
 .overlay-container {
     position: absolute;
     top: 0;
@@ -320,13 +461,15 @@ button {
     transition: var(--transition);
     z-index: 10;
 }
-
-.container.active .overlay-container {
-    transform: translateX(-100%);
-}
+.container.active .overlay-container { transform: translateX(-100%); }
 
 .overlay {
-    background: linear-gradient(135deg, var(--sakura-pink), var(--cyber-purple));
+    background: linear-gradient(
+        135deg,
+        var(--sakura-pink, #ff7eb3),
+        var(--cyber-purple, #9d4edd)
+    );
+    -webkit-backdrop-filter: blur(5px);     /* [F1] FIX */
     backdrop-filter: blur(5px);
     height: 100%;
     width: 200%;
@@ -334,10 +477,7 @@ button {
     left: -100%;
     transition: var(--transition);
 }
-
-.container.active .overlay {
-    transform: translateX(50%);
-}
+.container.active .overlay { transform: translateX(50%); }
 
 .overlay-panel {
     position: absolute;
@@ -348,22 +488,22 @@ button {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: var(--text-primary, #ffffff);
     text-align: center;
     padding: 0 40px;
 }
-
 .overlay-right { right: 0; }
-.overlay-left { left: 0; }
+.overlay-left  { left: 0; }
 
 .overlay-panel h2 {
     font-size: 2.2rem;
     margin-bottom: 15px;
-    -webkit-text-fill-color: white;
+    /* override gradient — white solid */
     background: none;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
     animation: none;
 }
-
 .overlay-panel p {
     font-size: 1rem;
     margin-bottom: 25px;
@@ -375,127 +515,157 @@ button {
     padding: 12px 35px;
     border-radius: 50px;
     background: transparent;
-    border: 2px solid white;
-    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    color: var(--text-primary, #ffffff);
     font-weight: 600;
     font-size: 1rem;
+    -webkit-backdrop-filter: blur(5px);    /* [F1] FIX */
     backdrop-filter: blur(5px);
-    transition: 0.3s;
+    transition: background 0.3s ease, color 0.3s ease,
+                transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     overflow: hidden;
+    will-change: transform;
 }
-
 .ghost::before {
     content: '';
     position: absolute;
-    top: 0;
+    inset: 0;
     left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: 0.5s;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.30),
+        transparent
+    );
+    transition: left 0.5s ease;
 }
-
-.ghost:hover::before {
-    left: 100%;
-}
-
+.ghost:hover::before { left: 100%; }
 .ghost:hover {
-    background: white;
-    color: var(--sakura-pink);
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--sakura-pink, #ff7eb3);
     transform: scale(1.05);
-    box-shadow: 0 0 30px white;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.50);
 }
 
-/* ===== TOAST SIÊU ĐẸP ===== */
+/* ======================================================
+   11. TOAST
+   ====================================================== */
 .toast {
     position: fixed;
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%) translateY(30px);
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(20px);   /* [F1] FIX */
     backdrop-filter: blur(20px);
     color: #1a1a2e;
     padding: 16px 35px;
     border-radius: 60px;
     font-weight: 600;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,126,179,0.3);
-    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.30),
+        0 0 30px var(--shadow-pink, rgba(255,126,179,0.30));
+    border: 1px solid rgba(255, 255, 255, 0.60);
     display: flex;
     align-items: center;
     gap: 12px;
     opacity: 0;
     visibility: hidden;
-    transition: 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    transition: opacity 0.5s ease, visibility 0.5s ease,
+                transform 0.5s var(--ease-bounce);
     z-index: 10000;
     font-size: 1rem;
+    will-change: transform, opacity;
 }
-
 .toast.show {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
 }
+.toast i { font-size: 1.5rem; }
 
-.toast i {
-    font-size: 1.5rem;
+.toast.success { background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff; }
+.toast.error   { background: linear-gradient(135deg, #ff4d4d, #f9cbca); color: #fff; }
+.toast.warning { background: linear-gradient(135deg, #f2994a, #f2c94c); color: #fff; }
+.toast.info    { background: linear-gradient(135deg, #56ccf2, #2f80ed); color: #fff; }
+
+/* ======================================================
+   12. [+] SKELETON LOADER (khi form đang load)
+   ====================================================== */
+.skeleton-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 40px;
+}
+.skeleton-line {
+    height: 56px;
+    border-radius: 60px;
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.06) 25%,
+        rgba(255,255,255,0.14) 50%,
+        rgba(255,255,255,0.06) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeletonWave 1.6s infinite linear;
+}
+.skeleton-line.short { height: 48px; width: 60%; margin: 0 auto; }
+@keyframes skeletonWave {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
 }
 
-.toast.success {
-    background: linear-gradient(135deg, #00b09b, #96c93d);
-    color: white;
-}
-
-.toast.error {
-    background: linear-gradient(135deg, #ff4d4d, #f9cbca);
-    color: white;
-}
-
-.toast.warning {
-    background: linear-gradient(135deg, #f2994a, #f2c94c);
-    color: white;
-}
-
-.toast.info {
-    background: linear-gradient(135deg, #56ccf2, #2f80ed);
-    color: white;
-}
-
-/* ===== FOOTER ===== */
+/* ======================================================
+   13. FOOTER
+   ====================================================== */
 .footer {
     position: absolute;
     bottom: 15px;
     width: 100%;
     text-align: center;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.70);
     font-size: 0.85rem;
     font-weight: 300;
     z-index: 10;
 }
 
-/* ===== MOBILE SWITCH (sẽ thêm bằng JS) ===== */
+/* ======================================================
+   14. MOBILE SWITCH
+   ====================================================== */
 .mobile-switch {
     display: none;
     text-align: center;
     margin-top: 20px;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.80);
     font-size: 0.95rem;
 }
-
 .mobile-switch a {
-    color: var(--sakura-pink);
+    color: var(--sakura-pink, #ff7eb3);
     text-decoration: none;
     font-weight: 600;
     margin-left: 5px;
-    transition: 0.3s;
+    transition: color 0.3s ease;
+}
+.mobile-switch a:hover { color: var(--cyber-blue, #00eaff); text-decoration: underline; }
+
+/* ======================================================
+   15. PERFORMANCE — prefers-reduced-motion
+   ====================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    body::before { animation: none; }
 }
 
-.mobile-switch a:hover {
-    color: var(--cyber-blue);
-    text-decoration: underline;
-}
-
-/* ===== RESPONSIVE ===== */
+/* ======================================================
+   16. RESPONSIVE — tablet
+   ====================================================== */
 @media (max-width: 768px) {
     .container {
         max-width: 95%;
@@ -510,32 +680,20 @@ button {
         left: 0 !important;
         padding: 30px 25px;
         height: auto;
-        transition: opacity 0.4s;
+        transition: opacity 0.4s ease;
     }
 
-    .sign-in, .sign-up {
-        opacity: 1;
-        visibility: visible;
-        display: block;
-    }
+    .sign-in,
+    .sign-up    { opacity: 1; visibility: visible; display: block; }
+    .sign-up    { display: none; }
 
-    .sign-up {
-        display: none;
-    }
+    .container.active .sign-in { display: none; }
+    .container.active .sign-up { display: block; }
 
-    .container.active .sign-in {
-        display: none;
-    }
+    .overlay-container { display: none; }
 
-    .container.active .sign-up {
-        display: block;
-    }
-
-    .overlay-container {
-        display: none;
-    }
-
-    .brand-logo, .center-title {
+    .brand-logo,
+    .center-title {
         position: relative;
         top: 0;
         left: 0;
@@ -543,65 +701,40 @@ button {
         text-align: center;
         margin: 10px 0;
     }
+    .brand-logo   { font-size: 2rem; }
+    .center-title { font-size: 1.2rem; margin-bottom: 20px; display: inline-block; }
 
-    .brand-logo {
-        font-size: 2rem;
-    }
+    h2 { font-size: 2rem; text-align: center; }
 
-    .center-title {
-        font-size: 1.2rem;
-        margin-bottom: 20px;
-        display: inline-block;
-    }
+    .action-btn   { max-width: 100%; }
+    .mobile-switch { display: block; }
 
-    h2 {
-        font-size: 2rem;
-        text-align: center;
-    }
-
-    .action-btn {
-        max-width: 100%;
-    }
-
-    .mobile-switch {
-        display: block;
-    }
-
-    .footer {
-        position: relative;
-        margin-top: 20px;
-    }
+    .footer { position: relative; margin-top: 20px; }
 }
 
+/* ======================================================
+   17. RESPONSIVE — mobile nhỏ
+   ====================================================== */
 @media (max-width: 480px) {
-    .container {
-        min-height: 500px;
-    }
+    .container     { min-height: 500px; }
+    .form-container { padding: 20px; }
 
-    .form-container {
-        padding: 20px 20px;
-    }
-
-    h2 {
-        font-size: 1.8rem;
-    }
+    h2 { font-size: 1.8rem; }
 
     .input-group input {
-        padding: 14px 20px 14px 45px;
+        padding: 14px 44px 14px 45px;
         font-size: 0.95rem;
     }
+    .input-group i.field-icon { left: 15px; font-size: 1rem; }
 
-    .input-group i {
-        left: 15px;
-        font-size: 1rem;
-    }
+    .action-btn { padding: 14px 20px; font-size: 1rem; }
+    .ghost      { padding: 10px 25px; }
 
-    .action-btn {
-        padding: 14px 20px;
-        font-size: 1rem;
-    }
-
-    .ghost {
-        padding: 10px 25px;
+    .toast {
+        padding: 13px 24px;
+        font-size: 0.9rem;
+        border-radius: 40px;
+        bottom: 20px;
+        width: 90%;
     }
 }
