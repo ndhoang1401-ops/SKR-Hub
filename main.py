@@ -171,8 +171,17 @@ def sanitize(text: str, max_len: int = 500) -> str:
     """Strip leading/trailing whitespace and cap length."""
     return str(text).strip()[:max_len]
 
+def xp_for_level(n: int) -> int:
+    """XP required to REACH level n. Matches frontend exactly."""
+    if n <= 1: return 0
+    return math.floor(50 * (n - 1) ** 1.6)
+
 def calculate_level(xp: int) -> int:
-    return math.floor((xp / 100) ** 0.8) + 1
+    """Derive level from total XP — must match xp_for_level above."""
+    lvl = 1
+    while xp_for_level(lvl + 1) <= xp:
+        lvl += 1
+    return lvl
 
 def today_str() -> str:
     return date.today().isoformat()
@@ -184,13 +193,38 @@ def now_str() -> str:
 #  XP + ACHIEVEMENTS
 # ──────────────────────────────────────────────
 _ACHIEVEMENT_THRESHOLDS = {
-    "xp":           [(100,  "FIRST_100_XP"),   (500,  "XP_500"),
-                     (1000, "XP_MASTER"),       (5000, "XP_LEGEND")],
-    "focus_count":  [(5,    "FOCUS_5"),         (20,   "FOCUS_20"),
-                     (50,   "FOCUS_50")],
-    "tasks_completed": [(10, "TASKS_10"),       (50,   "TASKS_50")],
-    "streak":       [(3,    "STREAK_3"),        (7,    "STREAK_WEEK"),
-                     (30,   "STREAK_MONTH")],
+    "xp":           [(100,   "FIRST_100_XP"),   (500,  "XP_500"),
+                     (1000,  "XP_MASTER"),       (5000, "XP_LEGEND"),
+                     (10000, "XP_GOD")],
+    "focus_count":  [(1,    "FIRST_SESSION"),   (5,    "FOCUS_5"),
+                     (20,   "FOCUS_20"),         (50,   "FOCUS_50"),
+                     (100,  "FOCUS_LEGEND")],
+    "tasks_completed": [(1,  "FIRST_TASK"),      (10,   "TASKS_10"),
+                        (50, "TASKS_50"),         (100,  "TASKS_100")],
+    "streak":       [(3,    "STREAK_3"),         (7,    "STREAK_WEEK"),
+                     (14,   "STREAK_2WEEKS"),    (30,   "STREAK_MONTH")],
+}
+
+# Human-readable achievement names
+ACHIEVEMENT_LABELS = {
+    "FIRST_100_XP":    "🌱 First 100 XP",
+    "XP_500":          "⚡ 500 XP Milestone",
+    "XP_MASTER":       "🔥 XP Master (1000)",
+    "XP_LEGEND":       "💎 XP Legend (5000)",
+    "XP_GOD":          "👑 XP God (10000)",
+    "FIRST_SESSION":   "⏱️ First Focus Session",
+    "FOCUS_5":         "🎯 5 Focus Sessions",
+    "FOCUS_20":        "🚀 20 Focus Sessions",
+    "FOCUS_50":        "💪 50 Focus Sessions",
+    "FOCUS_LEGEND":    "🏆 100 Focus Sessions",
+    "FIRST_TASK":      "✅ First Task Done",
+    "TASKS_10":        "📋 10 Tasks Completed",
+    "TASKS_50":        "🌟 50 Tasks Completed",
+    "TASKS_100":       "🎖️ 100 Tasks Completed",
+    "STREAK_3":        "📅 3-Day Streak",
+    "STREAK_WEEK":     "🗓️ Week Warrior",
+    "STREAK_2WEEKS":   "💫 2-Week Streak",
+    "STREAK_MONTH":    "👑 Monthly Legend",
 }
 
 def _check_achievements(conn, user_id: int, stats: sqlite3.Row):
@@ -349,7 +383,7 @@ def login():
         _update_streak(conn, user['id'])
         conn.commit()
 
-    return jsonify({'message': 'Login successful', 'redirect': '/dashboard'}), 200
+    return jsonify({'message': 'Login successful', 'redirect': '/dashboard', 'user_id': user['id']}), 200
 
 @app.route('/logout')
 def logout():
@@ -454,8 +488,11 @@ def api_user_stats():
         week_minutes.append(row['minutes']  if row else 0)
         week_sessions.append(row['sessions'] if row else 0)
 
+    current_level = stats['level']
     return jsonify({
         'xp':              stats['xp'],
+        'xp_for_level':    xp_for_level(current_level),
+        'xp_for_next':     xp_for_level(current_level + 1),
         'level':           stats['level'],
         'streak':          stats['streak'],
         'total_minutes':   stats['total_minutes'],
@@ -467,7 +504,12 @@ def api_user_stats():
         'last_active':     stats['last_active'],
         'weekly_activity': week_minutes,
         'weekly_sessions': week_sessions,
-        'achievements':    [dict(a) for a in achievements],
+        'achievements':    [
+            {**dict(a),
+             'display_name': ACHIEVEMENT_LABELS.get(a['achievement_name'],
+                             a['achievement_name'].replace('_',' ').title())}
+            for a in achievements
+        ],
     })
 
 @app.route('/api/update_stats', methods=['POST'])

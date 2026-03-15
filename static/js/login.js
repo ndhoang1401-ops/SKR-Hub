@@ -283,14 +283,10 @@ function showToast(message, type = 'success', duration = 3000) {
     const icon = icons[type] || icons.success;
 
     // [B2] FIX: set className (không có 'show') TRƯỚC
+    // FIX: set className FIRST (no 'show'), force reflow, then add 'show'
     toast.className = `toast ${type}`;
-    // [B2] safe: textContent cho message, icon qua class không có user input
     toast.innerHTML = `<i class="fas ${icon}"></i> <span>${escapeHtml(message)}</span>`;
-
-    // force reflow để transition chạy đúng sau khi className thay đổi
     void toast.offsetHeight;
-
-    // [B2] FIX: add 'show' SAU khi đã set className
     toast.classList.add('show');
     toast.style.animation = 'toastPop 0.4s ease-out both';
 
@@ -410,11 +406,13 @@ function initForms(container, regForm, loginForm) {
             const data = await res.json();
             if (res.ok) {
                 showToast('Login successful! Redirecting...', 'success', 2000);
-                // Fade out page rồi chuyển trang
+                // Save user_id so pages can use user-keyed localStorage
+                if (data.user_id) {
+                    localStorage.setItem('skr_current_uid', String(data.user_id));
+                }
                 setTimeout(() => {
                     document.body.style.transition = 'opacity 0.5s ease';
                     document.body.style.opacity    = '0';
-                    // [B7] FIX: dùng route Flask /dashboard thay vì file tĩnh
                     setTimeout(() => { window.location.href = data.redirect || '/dashboard'; }, 500);
                 }, 700);
             } else {

@@ -54,19 +54,20 @@
 /* ======================================================
    2. RESET & BASE
    ====================================================== */
-*,
+*:not(i):not([class*="fa-"]),
 *::before,
 *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Quicksand', 'Poppins', sans-serif;
+    
 }
 
 /* ======================================================
    3. BODY + ANIMATED GRADIENT MESH
    ====================================================== */
 body {
+    font-family: 'Quicksand', 'Poppins', sans-serif;
     min-height: 100vh;
     background-color: #0f0c29;
     color: var(--text-primary);
@@ -876,3 +877,20 @@ button:focus-visible {
         max-width: 92vw;
     }
 }
+
+/* ══════════════════════════════════════════════════
+   DEFINITIVE ICON FIX — end of file, highest priority
+   ══════════════════════════════════════════════════ */
+.fa, .fas, .far, .fab, .fal,
+i[class*="fa-"],
+[class^="fa-"], [class*=" fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    font-style:   normal  !important;
+    font-variant: normal  !important;
+    line-height:  1       !important;
+    -webkit-font-smoothing:  antialiased !important;
+    -moz-osx-font-smoothing: grayscale   !important;
+}
+.fas  { font-weight: 900 !important; }
+.far  { font-weight: 400 !important; }
+.fab  { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }

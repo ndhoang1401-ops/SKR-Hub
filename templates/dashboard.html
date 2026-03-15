@@ -2,13 +2,11 @@
 <html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="skr-uid" content="{{ session.get('user_id', 0) }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKR-HUB | Dashboard</title>
 
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Quicksand:wght@400;600;700&display=swap"
           rel="stylesheet">
@@ -21,7 +19,28 @@
         .fas,.fa-solid{font-weight:900!important;}
         .far,.fa-regular{font-weight:400!important;}
         .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    </style>
+    
+/* ══════════════════════════════════════════════════
+   DEFINITIVE ICON FIX — PHẢI ĐẶT CUỐI <style>
+   Lý do: * {font-family:Quicksand} đè FA → icons □
+   Fix: đặt sau reset, dùng !important override
+   ══════════════════════════════════════════════════ */
+.fa, .fas, .far, .fab, .fal, .fad, .fat, .fass,
+i[class*="fa-"],
+[class^="fa-"], [class*=" fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    font-style:   normal  !important;
+    font-variant: normal  !important;
+    line-height:  1       !important;
+    text-rendering: auto  !important;
+    -webkit-font-smoothing:  antialiased !important;
+    -moz-osx-font-smoothing: grayscale   !important;
+}
+.fas  { font-weight: 900 !important; }
+.far  { font-weight: 400 !important; }
+.fab  { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }
+
+</style>
 </head>
 
 <body class="fade-in">
@@ -109,21 +128,13 @@
                 <i class="fas fa-bell" aria-hidden="true"></i> Alarm sound
             </label>
             <select id="alarmSound" class="candy-select select-full" aria-label="Choose alarm sound">
-                <optgroup label="🔥 Meme Sounds">
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-retro-game-notification-212.mp3">👾 Retro Game Alert</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3">💀 Fail Sound</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3">🏆 Game Win</option>
-                </optgroup>
-                <optgroup label="🔔 Classic Chimes">
                     <option value="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3">🔔 Bell</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3">🏅 Achievement Bell</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3">✅ Positive Ping</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-happy-bells-notification-937.mp3">😊 Happy Bells</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3">🎯 Correct Answer</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3">💻 Interface Chime</option>
-                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-magic-notification-ring-2344.mp3">✨ Magic Ring</option>
-                </optgroup>
-            </select>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3">🏆 Achievement</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3">🎵 Positive</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3">✅ Correct</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-magic-notification-ring-2344.mp3">✨ Magic</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-retro-game-notification-212.mp3">🎮 Retro</option>
+                </select>
 
             <div class="timer-controls">
                 <button class="candy-btn" onclick="startTimer()" aria-label="Start timer">
@@ -247,5 +258,36 @@
     <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+/* UNIVERSAL FA ICON FIX — runs after all JS/CSS loaded */
+(function(){
+    function fixFA(){
+        document.querySelectorAll(
+            'i[class*="fa-"],.fa,.fas,.far,.fab,[class^="fa-"],[class*=" fa-"]'
+        ).forEach(function(el){
+            var c=el.className||'';
+            el.style.setProperty('font-style','normal','important');
+            if(c.indexOf('fab')>-1||c.indexOf('fa-brands')>-1){
+                el.style.setProperty('font-family','"Font Awesome 6 Brands"','important');
+                el.style.setProperty('font-weight','400','important');
+            } else if(c.indexOf('far')>-1||c.indexOf('fa-regular')>-1){
+                el.style.setProperty('font-family','"Font Awesome 6 Free"','important');
+                el.style.setProperty('font-weight','400','important');
+            } else {
+                el.style.setProperty('font-family','"Font Awesome 6 Free"','important');
+                el.style.setProperty('font-weight','900','important');
+            }
+        });
+    }
+    fixFA();
+    document.addEventListener('DOMContentLoaded',fixFA);
+    setTimeout(fixFA,300);
+    setTimeout(fixFA,1200);
+    new MutationObserver(fixFA).observe(
+        document.body||document.documentElement,
+        {childList:true,subtree:true,attributes:true,attributeFilter:['class']}
+    );
+})();
+</script>
 </body>
 </html>

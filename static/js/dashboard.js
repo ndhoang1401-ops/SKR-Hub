@@ -50,6 +50,11 @@ const SKR = {
 
 // ==================== KHỞI TẠO ====================
 document.addEventListener('DOMContentLoaded', async () => {
+    // User-specific localStorage isolation
+    const _uid = document.querySelector('meta[name="skr-uid"]')?.content || '0';
+    window.SKR_UID = _uid;
+    window.NOTE_KEY = `skr_notes_${_uid}`;
+
     initWelcome();
     initSakura();
     initDailyQuote();
@@ -144,6 +149,8 @@ async function loadUserStats() {
         const data = await res.json();
 
         SKR.xp             = data.xp             || 0;
+        SKR.xp_for_level   = data.xp_for_level   || undefined;
+        SKR.xp_for_next    = data.xp_for_next    || undefined;
         SKR.level          = data.level           || 1;
         SKR.streak         = data.streak          || 0;
         SKR.totalMinutes   = data.total_minutes   || 0;
@@ -199,11 +206,12 @@ function updateLvlUI() {
     setText('rankName',   SKR.ranks[rankIndex]);
     setText('currentXp',  SKR.xp);
 
-    const nextXp    = getXpForLevel(SKR.level + 1);
-    const currentXp = getXpForLevel(SKR.level);
+    // Use server values if available (most accurate), else calculate locally
+    const currentXp = SKR.xp_for_level !== undefined ? SKR.xp_for_level : getXpForLevel(SKR.level);
+    const nextXp    = SKR.xp_for_next  !== undefined ? SKR.xp_for_next  : getXpForLevel(SKR.level + 1);
     const denom     = nextXp - currentXp;
     const percent   = denom > 0
-        ? ((SKR.xp - currentXp) / denom) * 100
+        ? Math.min(100, Math.max(0, ((SKR.xp - currentXp) / denom) * 100))
         : 100;
     const fill = document.getElementById('xpFill');
     if (fill) fill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
@@ -211,9 +219,10 @@ function updateLvlUI() {
     setText('rankMessage', SKR.rankMessages[rankIndex] || SKR.rankMessages[0]);
 }
 
+// ── XP formula — MUST match main.py xp_for_level() ──
 function getXpForLevel(level) {
     if (level <= 1) return 0;
-    return Math.floor(100 * Math.pow(level - 1, 1.2));
+    return Math.floor(50 * Math.pow(level - 1, 1.6));
 }
 
 // helper tránh lặp getElementById + innerText
@@ -404,12 +413,31 @@ async function handleTimerComplete() {
     try {
         const soundSrc = document.getElementById('alarmSound')?.value;
         if (soundSrc) {
-            const sound = new Audio(soundSrc);
-            sound.volume = volume;
-            await sound.play();
+            // Try AudioContext first (works even without prior user gesture in some browsers)
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') await ctx.resume();
+            const resp = await fetch(soundSrc);
+            const buf  = await resp.arrayBuffer();
+            const decoded = await ctx.decodeAudioData(buf);
+            const src = ctx.createBufferSource();
+            const gain = ctx.createGain();
+            gain.gain.value = volume;
+            src.buffer = decoded;
+            src.connect(gain);
+            gain.connect(ctx.destination);
+            src.start(0);
         }
     } catch (e) {
-        console.warn('[SKR] Audio play blocked:', e.message);
+        // Fallback: plain Audio element
+        try {
+            const soundSrc = document.getElementById('alarmSound')?.value;
+            if (soundSrc) {
+                const snd = new Audio(soundSrc);
+                snd.volume = volume;
+                snd.play().catch(() => {});
+            }
+        } catch (_) {}
+        console.warn('[SKR] Audio via AudioContext blocked, used fallback');
     }
 
     // [+] Browser notification nếu tab đang ẩn
@@ -483,7 +511,7 @@ function showToast(msg, isErr = false, dur = 3000) {
 
 // ==================== NOTES ====================
 let notes = (() => {
-    try { return JSON.parse(localStorage.getItem('skr_notes')) || []; }
+    try { return JSON.parse(localStorage.getItem(window.NOTE_KEY || 'skr_notes')) || []; }
     catch { return []; }
 })();
 
@@ -521,7 +549,7 @@ function deleteNote(id) {
 }
 
 function saveNotes() {
-    try { localStorage.setItem('skr_notes', JSON.stringify(notes)); }
+    try { localStorage.setItem(window.NOTE_KEY || 'skr_notes', JSON.stringify(notes)); }
     catch (e) { console.warn('[SKR] localStorage full', e); }
 }
 
@@ -530,7 +558,11 @@ function renderNotes() {
     if (!list) return;
 
     if (notes.length === 0) {
-        list.innerHTML = '<p style="opacity:0.5;text-align:center;">No notes yet. Add one!</p>';
+        const empty = document.createElement('p');
+    empty.className = 'notes-empty';
+    empty.textContent = 'No notes yet. Add one above!';
+    list.appendChild(empty);
+    return;
         return;
     }
 
@@ -544,16 +576,16 @@ function renderNotes() {
         span.textContent = n.text; // textContent, KHÔNG phải innerHTML
 
         const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:15px;';
+        actions.className = 'note-actions';
 
         const checkBtn = document.createElement('i');
         checkBtn.className = 'fas fa-check-circle';
-        checkBtn.style.cssText = 'color:#00ff88;cursor:pointer;';
+        checkBtn.className += ' note-check';
         checkBtn.addEventListener('click', () => toggleNote(n.id));
 
         const delBtn = document.createElement('i');
         delBtn.className = 'fas fa-trash-alt';
-        delBtn.style.cssText = 'color:#ff4d4d;cursor:pointer;';
+        delBtn.className += ' note-del';
         delBtn.addEventListener('click', () => deleteNote(n.id));
 
         actions.append(checkBtn, delBtn);

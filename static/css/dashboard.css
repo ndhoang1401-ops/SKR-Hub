@@ -1,3 +1,24 @@
+/* ============================================================
+   CRITICAL FIX — đặt đầu file, trước mọi rule khác
+   * {font-family:Quicksand} override Font Awesome → icon □
+   ============================================================ */
+.fa,.fas,.far,.fab,.fal,
+[class^="fa-"],[class*=" fa-"],
+i[class*="fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 6 Pro" !important;
+    font-style:   normal  !important;
+    font-variant: normal  !important;
+    font-weight:  inherit !important;
+    line-height:  1       !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale  !important;
+    text-rendering: auto  !important;
+    display: inline-block !important;
+}
+.fas, .fa-solid   { font-weight: 900 !important; }
+.far, .fa-regular { font-weight: 400 !important; }
+.fab, .fa-brands  { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }
+
 /* =====================================================
    FIX □ ICON — * {font-family:Quicksand} override FA
    ===================================================== */
@@ -89,6 +110,7 @@
 }
 
 [data-theme="light"] body {
+    font-family: 'Quicksand', sans-serif;
     background: radial-gradient(
         circle at 30% 30%,
         #e8d5ff 0%,
@@ -157,7 +179,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Quicksand', sans-serif;
+    
 }
 
 /* Scrollbar */
@@ -1421,3 +1443,23 @@ body.focus-mode .card:has(.timer-circle) h2 {
 .music-row          { display:flex; gap:8px; margin-bottom:12px; }
 .select-full        { width:100%; margin-bottom:12px; }
 .footer-tagline     { font-style:italic; opacity:0.7; margin-top:6px; }
+
+/* SVG gradient defs — ẩn khỏi layout */
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ══════════════════════════════════════════════════
+   DEFINITIVE ICON FIX — end of file, highest priority
+   ══════════════════════════════════════════════════ */
+.fa, .fas, .far, .fab, .fal,
+i[class*="fa-"],
+[class^="fa-"], [class*=" fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    font-style:   normal  !important;
+    font-variant: normal  !important;
+    line-height:  1       !important;
+    -webkit-font-smoothing:  antialiased !important;
+    -moz-osx-font-smoothing: grayscale   !important;
+}
+.fas  { font-weight: 900 !important; }
+.far  { font-weight: 400 !important; }
+.fab  { font-family: "Font Awesome 6 Brands" !important; font-weight: 400 !important; }
