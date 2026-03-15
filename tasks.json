@@ -1,8 +1,47 @@
-{
-    "id": 3,
-    "title": "Study Organic Chemistry",
-    "done": false,
-    "owner": "user@example.com",
-    "created_at": "2026-02-27T10:30:00",
-    "priority": "high"
-}
+[
+    {
+        "id": 1,
+        "title": "Study Organic Chemistry",
+        "description": "Review chapters 5-8, focus on reaction mechanisms",
+        "subject": "Chemistry",
+        "tag": "exam-prep",
+        "done": false,
+        "owner": "user@example.com",
+        "priority": "high",
+        "created_at": "2026-02-27T10:30:00",
+        "due_date": "2026-03-20",
+        "completed_at": null,
+        "estimated_mins": 90,
+        "notes": "Use Clayden textbook + past papers"
+    },
+    {
+        "id": 2,
+        "title": "Solve Math Practice Problems",
+        "description": "Complete exercise set 3A and 3B from workbook",
+        "subject": "Mathematics",
+        "tag": "homework",
+        "done": true,
+        "owner": "user@example.com",
+        "priority": "medium",
+        "created_at": "2026-03-01T08:00:00",
+        "due_date": "2026-03-05",
+        "completed_at": "2026-03-04T15:30:00",
+        "estimated_mins": 60,
+        "notes": ""
+    },
+    {
+        "id": 3,
+        "title": "Read English Literature Essay",
+        "description": "Analyse themes in The Great Gatsby chapters 1-4",
+        "subject": "English Literature",
+        "tag": "reading",
+        "done": false,
+        "owner": "user@example.com",
+        "priority": "low",
+        "created_at": "2026-03-10T14:00:00",
+        "due_date": "2026-03-25",
+        "completed_at": null,
+        "estimated_mins": 45,
+        "notes": "Focus on symbolism and social class themes"
+    }
+]

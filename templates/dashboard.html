@@ -1,151 +1,250 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKR-HUB | Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Quicksand:wght@400;600;700&display=swap"
+          rel="stylesheet">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+    <!-- FIX root cause: * {font-family:Quicksand} override FA → icon thành □ -->
+    <style>
+        .fa,.fas,.far,.fab,.fal,i[class*="fa-"]{font-family:"Font Awesome 6 Free","Font Awesome 6 Brands"!important;font-style:normal!important;}
+        .fas,.fa-solid{font-weight:900!important;}
+        .far,.fa-regular{font-weight:400!important;}
+        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    </style>
 </head>
+
 <body class="fade-in">
 
     <!-- WELCOME OVERLAY -->
-    <div id="welcome-overlay">
-        <div class="welcome-text">SKR‑HUB</div>
-        <div class="welcome-sub">Welcome back, {{ name }}!</div>
+    <div id="welcome-overlay" role="status" aria-live="polite">
+        <div class="welcome-text">SKR&#8209;HUB</div>
+        <div class="welcome-sub">Welcome back, {{ name }}! 🌸</div>
     </div>
+
+    <!-- SVG gradient defs -->
+    <svg width="0" height="0" aria-hidden="true" focusable="false" class="svg-defs">
+        <defs>
+            <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="#ff7eb3"/>
+                <stop offset="100%" stop-color="#00eaff"/>
+            </linearGradient>
+        </defs>
+    </svg>
 
     <!-- HEADER -->
     <header class="header">
-        <h1 class="title-wave">SKR‑HUB DASHBOARD</h1>
-        <p id="daily-quote" class="quote-style"></p>
+        <h1 class="title-wave">SKR&#8209;HUB DASHBOARD</h1>
+        <p id="daily-quote" class="quote-style" aria-live="polite"></p>
     </header>
 
-    <!-- QUICK ACCESS -->
-    <div style="position: relative; max-width: 1300px; margin: 0 auto;">
-        <nav class="quick-nav">
-            <a href="/self-learning" class="nav-btn"><i class="fas fa-brain"></i> Self‑Learning</a>
-            <a href="/flashcard" class="nav-btn"><i class="fas fa-layer-group"></i> Flashcards</a>
-            <a href="/stats" class="nav-btn"><i class="fas fa-chart-line"></i> Statistics</a>
-            <a href="/logout" id="logout-btn" class="nav-btn logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- QUICK NAV -->
+    <div class="quick-nav-wrap">
+        <nav class="quick-nav" aria-label="Quick navigation">
+            <a href="/self-learning" class="nav-btn tooltip-wrap" data-tip="Tự học theo chủ đề">
+                <i class="fas fa-brain" aria-hidden="true"></i>
+                <span>Self&#8209;Learning</span>
+            </a>
+            <a href="/flashcard" class="nav-btn tooltip-wrap" data-tip="Ôn tập flashcard">
+                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                <span>Flashcards</span>
+            </a>
+            <a href="/stats" class="nav-btn tooltip-wrap" data-tip="Thống kê học tập">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
+                <span>Statistics</span>
+            </a>
+            <a href="/logout" id="logout-btn" class="nav-btn logout-btn">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                <span>Logout</span>
+            </a>
         </nav>
     </div>
 
     <!-- DASHBOARD GRID -->
-    <div class="dashboard-grid">
-        <!-- CARD: LEVEL & XP -->
-        <div class="card">
-            <h2><i class="fas fa-medal"></i> MASTERY LEVEL</h2>
-            <div class="lvl-badge" id="lvlNumber">1</div>
-            <p style="text-align: center; margin-top: 10px;">RANK: <span id="rankName" style="color: var(--cyber-blue);">⚡ TÂN BINH</span></p>
-            <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
-            <p style="font-size: 12px;">XP: <span id="currentXp">0</span> / 100</p>
-            <div id="rankMessage" class="rank-message">Every master was once a beginner. Keep going!</div>
-        </div>
+    <main class="dashboard-grid" id="main-grid">
 
-        <!-- CARD: POMODORO PRO -->
-        <div class="card">
-            <h2><i class="fas fa-clock"></i> FOCUS TIMER</h2>
-            <div class="timer-settings">
-                <input type="number" id="setH" placeholder="00" min="0" max="99" class="candy-input" value="0"> :
-                <input type="number" id="setM" placeholder="25" min="0" max="59" class="candy-input" value="25"> :
-                <input type="number" id="setS" placeholder="00" min="0" max="59" class="candy-input" value="0">
+        <!-- CARD 1: MASTERY LEVEL -->
+        <article class="card" id="card-level" aria-label="Mastery Level">
+            <h2><i class="fas fa-medal" aria-hidden="true"></i> MASTERY LEVEL</h2>
+            <div class="lvl-badge" id="lvlNumber" aria-label="Current level">1</div>
+            <p class="rank-line">
+                RANK: <span id="rankName">⚡ TÂN BINH</span>
+            </p>
+            <div class="xp-bar" role="progressbar"
+                 aria-label="XP progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="xp-fill" id="xpFill"></div>
             </div>
-            <div class="timer-circle">
+            <p class="text-xs mt-6">XP: <span id="currentXp">0</span> / 100</p>
+            <div id="rankMessage" class="rank-message">Every master was once a beginner. Keep going!</div>
+        </article>
+
+        <!-- CARD 2: FOCUS TIMER -->
+        <article class="card" id="card-timer" aria-label="Focus Timer">
+            <h2><i class="fas fa-clock" aria-hidden="true"></i> FOCUS TIMER</h2>
+
+            <div class="timer-settings" role="group" aria-label="Set timer duration">
+                <input type="number" id="setH" value="0"  min="0" max="99" aria-label="Hours">
+                <span class="separator" aria-hidden="true">:</span>
+                <input type="number" id="setM" value="25" min="0" max="59" aria-label="Minutes">
+                <span class="separator" aria-hidden="true">:</span>
+                <input type="number" id="setS" value="0"  min="0" max="59" aria-label="Seconds">
+            </div>
+
+            <div class="timer-circle" role="timer" aria-live="polite" aria-label="Timer display">
                 <div class="timer-display" id="timerDisplay">25:00</div>
                 <div class="timer-label">FOCUS</div>
             </div>
-            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <select id="alarmSound" class="candy-select" style="width:100%; margin-bottom:10px;">
-                    <optgroup label="🔊 Meme Sounds">
-                        <option value="https://www.myinstants.com/media/sounds/vine-boom.mp3">Vine Boom</option>
-                        <option value="https://www.myinstants.com/media/sounds/fbi-open-up-sfx.mp3">FBI Open Up</option>
-                        <option value="https://www.myinstants.com/media/sounds/among-us-drip.mp3">Among Us Drip</option>
-                        <option value="https://www.myinstants.com/media/sounds/megalovania_3.mp3">Megalovania</option>
-                        <option value="https://www.myinstants.com/media/sounds/roblox-death-sound_1.mp3">Roblox Death</option>
-                        <option value="https://www.myinstants.com/media/sounds/minecraft-ghast_1.mp3">Minecraft Ghast</option>
-                        <option value="https://www.myinstants.com/media/sounds/geometry-dash-practice-mode_1.mp3">Geometry Dash</option>
-                    </optgroup>
-                    <optgroup label="🔔 Classic Chimes">
-                        <option value="https://www.myinstants.com/media/sounds/ding-sound-effect_2.mp3">Ding</option>
-                        <option value="https://www.myinstants.com/media/sounds/notification-sound-1.mp3">Notification</option>
-                        <option value="https://www.myinstants.com/media/sounds/alarm-clock-short_1.mp3">Alarm Clock</option>
-                        <option value="https://www.myinstants.com/media/sounds/morning-alarm.mp3">Morning Alarm</option>
-                        <option value="https://www.myinstants.com/media/sounds/gentle-chime.mp3">Gentle Chime</option>
-                        <option value="https://www.myinstants.com/media/sounds/bell-sound.mp3">Bell</option>
-                        <option value="https://www.myinstants.com/media/sounds/positive-notification.mp3">Positive</option>
-                    </optgroup>
-                </select>
-            </div>
-            <!-- Volume sẽ được thêm bằng JS -->
-            <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-                <button class="candy-btn" onclick="startTimer()"><i class="fas fa-play"></i> START</button>
-                <button class="candy-btn blue" onclick="pauseTimer()"><i class="fas fa-pause"></i> PAUSE</button>
-                <button class="candy-btn" onclick="resetTimer()"><i class="fas fa-undo"></i> RESET</button>
-            </div>
-        </div>
 
-        <!-- CARD: FOCUS ZONE (ĐÃ SỬA) -->
-        <div class="card">
-            <h2><i class="fas fa-crosshairs"></i> FOCUS ZONE</h2>
-            <p style="margin-bottom:15px;">Eliminate distractions. Enter deep work.</p>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="candy-btn" onclick="toggleFocusMode()" style="flex:1;">
-                    <i class="fas fa-eye"></i> ACTIVATE FOCUS
+            <label for="alarmSound" class="text-sm text-muted mb-10">
+                <i class="fas fa-bell" aria-hidden="true"></i> Alarm sound
+            </label>
+            <select id="alarmSound" class="candy-select select-full" aria-label="Choose alarm sound">
+                <optgroup label="🔥 Meme Sounds">
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-retro-game-notification-212.mp3">👾 Retro Game Alert</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3">💀 Fail Sound</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3">🏆 Game Win</option>
+                </optgroup>
+                <optgroup label="🔔 Classic Chimes">
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3">🔔 Bell</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3">🏅 Achievement Bell</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3">✅ Positive Ping</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-happy-bells-notification-937.mp3">😊 Happy Bells</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3">🎯 Correct Answer</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3">💻 Interface Chime</option>
+                    <option value="https://assets.mixkit.co/sfx/preview/mixkit-magic-notification-ring-2344.mp3">✨ Magic Ring</option>
+                </optgroup>
+            </select>
+
+            <div class="timer-controls">
+                <button class="candy-btn" onclick="startTimer()" aria-label="Start timer">
+                    <i class="fas fa-play" aria-hidden="true"></i> START
+                </button>
+                <button class="candy-btn blue" onclick="pauseTimer()" aria-label="Pause timer">
+                    <i class="fas fa-pause" aria-hidden="true"></i> PAUSE
+                </button>
+                <button class="candy-btn ghost" onclick="resetTimer()" aria-label="Reset timer">
+                    <i class="fas fa-undo" aria-hidden="true"></i> RESET
+                </button>
+            </div>
+        </article>
+
+        <!-- CARD 3: FOCUS ZONE -->
+        <article class="card" id="card-focus" aria-label="Focus Zone">
+            <h2><i class="fas fa-crosshairs" aria-hidden="true"></i> FOCUS ZONE</h2>
+            <p class="text-muted mb-15">Eliminate distractions. Enter deep work.</p>
+            <div class="focus-action-row">
+                <button class="candy-btn flex-1" onclick="toggleFocusMode()" aria-label="Toggle focus mode">
+                    <i class="fas fa-eye" aria-hidden="true"></i> ACTIVATE FOCUS
                 </button>
                 <div class="focus-stats">
-                    <div style="font-size:13px;">Focus count</div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span id="focusCount" style="font-size:24px; font-weight:700; color:var(--cyber-blue);">0</span>
-                        <button class="candy-btn small" onclick="resetFocusCount()" title="Reset focus count"><i class="fas fa-undo-alt"></i></button>
+                    <div class="streak-label">Focus count</div>
+                    <div class="focus-stats-num">
+                        <span id="focusCount" class="text-blue fs-26 fw-800">0</span>
+                        <button class="candy-btn icon-only tooltip-wrap"
+                                onclick="resetFocusCount()"
+                                aria-label="Reset focus count"
+                                title="Reset focus count"
+                                data-tip="Reset focus count">
+                            <i class="fas fa-undo-alt" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-            <p style="margin-top:15px; font-size:13px; opacity:0.7;">✨ Focus mode hides all other cards, only timer remains. Click EXIT FOCUS button to return.</p>
-        </div>
+            <p class="focus-hint">✨ Focus mode hides all other cards, only timer remains. Click EXIT FOCUS button to return.</p>
+        </article>
 
-        <!-- CARD: NOTES -->
-        <div class="card">
-            <h2><i class="fas fa-pen"></i> NOTES</h2>
-            <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                <input type="text" id="noteInput" placeholder="Write a note..." class="candy-input">
-                <button class="candy-btn" onclick="addNote()"><i class="fas fa-plus"></i></button>
+        <!-- CARD 4: NOTES -->
+        <article class="card" id="card-notes" aria-label="Notes">
+            <h2><i class="fas fa-pen" aria-hidden="true"></i> NOTES</h2>
+            <div class="note-add-row">
+                <label for="noteInput" class="sr-only">Write a note</label>
+                <input type="text" id="noteInput"
+                       placeholder="Write a note..." class="candy-input"
+                       onkeydown="if(event.key==='Enter') addNote()"
+                       aria-label="New note text">
+                <button class="candy-btn icon-only" onclick="addNote()"
+                        aria-label="Add note" title="Add note">
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                </button>
             </div>
-            <div id="noteList"></div>
-        </div>
+            <div id="noteList" role="list" aria-label="Notes list"></div>
+        </article>
 
-        <!-- CARD: ACHIEVEMENTS & STREAK -->
-        <div class="card">
-            <h2><i class="fas fa-trophy"></i> ACHIEVEMENTS</h2>
-            <p>🔥 Current streak: <span id="streakCount">0</span> days</p>
-            <div class="achievements-container" id="achievements-container"></div>
-            <p style="margin-top: 10px;">🎯 Daily goal: <span id="goalDisplay">0</span> / <span id="goalTarget">30</span> min</p>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="goalInput" placeholder="Goal (min)" min="1" value="30" class="candy-input">
-                <button class="candy-btn" onclick="setDailyGoal()">Set</button>
+        <!-- CARD 5: ACHIEVEMENTS -->
+        <article class="card" id="card-achievements" aria-label="Achievements and Streak">
+            <h2><i class="fas fa-trophy" aria-hidden="true"></i> ACHIEVEMENTS</h2>
+            <div class="streak-row">
+                <span class="streak-emoji" aria-hidden="true">🔥</span>
+                <div>
+                    <div class="streak-label">Current streak</div>
+                    <div>
+                        <span id="streakCount" class="text-blue fs-28 fw-800">0</span>
+                        <span class="streak-unit"> days</span>
+                    </div>
+                </div>
             </div>
-        </div>
+            <div class="activity-map" aria-label="Activity heatmap last 28 days">
+                <div class="cells" id="heatmap"></div>
+            </div>
+            <div id="achievements-container" class="mt-14" role="list" aria-label="Achievement list"></div>
+            <p class="goal-label">
+                🎯 Daily goal:
+                <span id="goalDisplay" class="text-blue text-bold">0</span>
+                / <span id="goalTarget" class="text-pink text-bold">30</span> min
+            </p>
+            <div class="goal-row">
+                <label for="goalInput" class="sr-only">Daily goal in minutes</label>
+                <input type="number" id="goalInput"
+                       placeholder="Goal (min)" min="1" value="30" class="candy-input"
+                       aria-label="Daily goal in minutes">
+                <button class="candy-btn" onclick="setDailyGoal()" aria-label="Set daily goal">
+                    <i class="fas fa-check" aria-hidden="true"></i> Set
+                </button>
+            </div>
+        </article>
 
-        <!-- CARD: YOUTUBE MUSIC -->
-        <div class="card">
-            <h2><i class="fas fa-music"></i> MUSIC ZONE</h2>
-            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                <input type="text" id="ytLink" placeholder="Paste YouTube URL..." class="candy-input">
-                <button class="candy-btn" onclick="loadYouTube()"><i class="fas fa-play"></i> PLAY</button>
+        <!-- CARD 6: MUSIC ZONE -->
+        <article class="card" id="card-music" aria-label="Music Zone">
+            <h2><i class="fas fa-music" aria-hidden="true"></i> MUSIC ZONE</h2>
+            <div class="music-row">
+                <label for="ytLink" class="sr-only">YouTube URL</label>
+                <input type="text" id="ytLink"
+                       placeholder="Paste YouTube URL..."
+                       class="candy-input"
+                       onkeydown="if(event.key==='Enter') loadYouTube()"
+                       aria-label="YouTube video URL">
+                <button class="candy-btn" onclick="loadYouTube()"
+                        aria-label="Load YouTube video" title="Play">
+                    <i class="fas fa-play" aria-hidden="true"></i>
+                </button>
             </div>
-            <div id="yt-player-container"></div>
-        </div>
-    </div>
+            <div id="yt-player-container" aria-label="YouTube player"></div>
+            <p class="music-hint">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                Paste link nhạc lo-fi / study beats để tập trung hơn 🎵
+            </p>
+        </article>
+
+    </main>
 
     <!-- FOOTER -->
     <footer class="footer-premium">
         <p>© 2026 · Mastered by <span class="owner">Nguyễn Doãn Hoàng</span></p>
-        <p style="font-style: italic; opacity: 0.7;">"Discipline is the bridge between goals and accomplishment."</p>
+        <p class="footer-tagline">"Discipline is the bridge between goals and accomplishment."</p>
     </footer>
 
-    <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="toast"></div>
+    <!-- TOAST -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>

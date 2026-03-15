@@ -1,75 +1,297 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SKR-HUB </title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>SKR-HUB · Welcome</title>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Quicksand:wght@400;600;700&display=swap"
+          rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+
+    <style>
+/* FIX □ icon */
+.fa,.fas,.far,.fab,.fal,i[class*="fa-"]{
+    font-family:"Font Awesome 6 Free","Font Awesome 6 Brands"!important;
+    font-style:normal!important;
+}
+.fas,.fa-solid  {font-weight:900!important}
+.far,.fa-regular{font-weight:400!important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ── SAKURA ── */
+.sakura-petal{
+    position:fixed;top:-10%;z-index:0;pointer-events:none;
+    font-size:18px;opacity:.7;
+    animation:fall3D linear forwards;
+    transform-style:preserve-3d;
+    filter:drop-shadow(0 0 4px rgba(255,126,179,0.55));
+    will-change:transform,opacity;backface-visibility:hidden;
+}
+@keyframes fall3D{
+    0%  {transform:translateY(0) rotate(0deg) translateZ(0);opacity:.85}
+    30% {transform:translateY(30vh) rotate(180deg) translateZ(40px);opacity:.75}
+    60% {transform:translateY(60vh) rotate(360deg) translateZ(80px);opacity:.50}
+    100%{transform:translateY(110vh) rotate(720deg) translateZ(160px);opacity:0}
+}
+.sakura-petal.linger{animation:lingerEffect 1.5s ease-out forwards}
+@keyframes lingerEffect{
+    0%  {transform:scale(1) rotate(0deg);opacity:1;filter:drop-shadow(0 0 10px gold)}
+    50% {transform:scale(2) rotate(180deg);opacity:.8;filter:drop-shadow(0 0 28px hotpink)}
+    100%{transform:scale(0) rotate(360deg);opacity:0}
+}
+
+/* ── FLOATING ORBS ── */
+.orb{
+    position:fixed;border-radius:50%;pointer-events:none;z-index:0;
+    animation:orbFloat 9s ease-in-out infinite alternate;
+    filter:blur(70px);opacity:.22;
+}
+.orb-1{width:350px;height:350px;background:#ff7eb3;top:-100px;left:-80px;animation-delay:0s}
+.orb-2{width:280px;height:280px;background:#9d4edd;bottom:-80px;right:-60px;animation-delay:-4s}
+.orb-3{width:200px;height:200px;background:#00eaff;top:40%;right:3%;animation-delay:-7s}
+@keyframes orbFloat{from{transform:translateY(0) scale(1)}to{transform:translateY(32px) scale(1.08)}}
+
+/* ── BRAND LOGO ── */
+.brand-logo{
+    position:fixed;top:22px;left:28px;
+    font-family:'Orbitron',sans-serif;
+    font-size:1.4rem;font-weight:800;
+    letter-spacing:5px;z-index:20;
+    background:linear-gradient(90deg,#fff,#ff7eb3,#00eaff);
+    background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;-webkit-text-fill-color:transparent;
+    animation:brandShine 6s linear infinite;
+    text-decoration:none;
+}
+@keyframes brandShine{to{background-position:200% center}}
+
+/* ── WELCOME BADGE (top right) ── */
+.center-title{
+    position:fixed;top:22px;right:28px;
+    font-family:'Orbitron',sans-serif;
+    font-size:.85rem;font-weight:700;
+    letter-spacing:3px;text-transform:uppercase;
+    color:rgba(255,255,255,0.90);z-index:20;
+    background:rgba(255,255,255,0.10);
+    -webkit-backdrop-filter:blur(12px);
+    backdrop-filter:blur(12px);
+    padding:9px 20px;border-radius:40px;
+    border:1px solid rgba(255,255,255,0.18);
+    box-shadow:0 0 20px rgba(255,126,179,0.20);
+}
+
+/* ── FEATURE PILLS (bottom) ── */
+.feature-pills{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    display:flex;gap:10px;z-index:20;flex-wrap:wrap;justify-content:center;
+}
+.pill{
+    padding:6px 18px;border-radius:30px;
+    background:rgba(255,255,255,0.08);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.14);
+    color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;
+    display:inline-flex;align-items:center;gap:7px;
+    animation:pillIn 0.8s ease both;
+}
+.pill:nth-child(1){animation-delay:.1s}
+.pill:nth-child(2){animation-delay:.2s}
+.pill:nth-child(3){animation-delay:.3s}
+.pill:nth-child(4){animation-delay:.4s}
+@keyframes pillIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.pill i{color:#ff7eb3;font-size:11px}
+
+@media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+    .orb,.sakura-petal{display:none}
+}
+@media(max-width:480px){
+    .brand-logo{font-size:1.1rem;letter-spacing:3px}
+    .center-title{font-size:.75rem;padding:7px 14px}
+    .feature-pills{gap:6px;bottom:16px}
+    .pill{font-size:11px;padding:5px 12px}
+}
+    </style>
 </head>
 <body>
-    <div class="brand-logo">SKR-HUB</div>
-    <h1 class="center-title">WELCOME BACK</h1>
 
-    <div class="container" id="mainContainer">
-        <!-- Sign In Form (bên trái) -->
-        <div class="form-container sign-in">
-            <form id="loginForm">
-                <h2>Sign In</h2>
-                <div class="input-group">
-                    <input type="email" name="email" placeholder="Email address" required>
-                    <i>✉️</i>
-                </div>
-                <div class="input-group">
-                    <input type="password" name="password" placeholder="Password" required>
-                    <i>🔒</i>
-                </div>
-                <button type="submit" class="action-btn" id="loginBtn">Login</button>
-                <a href="/forgot-password" class="forgot-password">Forgot password?</a>
-            </form>
-        </div>
+<!-- Orbs -->
+<div class="orb orb-1" aria-hidden="true"></div>
+<div class="orb orb-2" aria-hidden="true"></div>
+<div class="orb orb-3" aria-hidden="true"></div>
 
-        <!-- Sign Up Form (bên phải, bị ẩn) -->
-        <div class="form-container sign-up">
-            <form id="regForm">
-                <h2>Create Account</h2>
-                <div class="input-group">
-                    <input type="text" name="username" placeholder="Username" required>
-                    <i>👤</i>
-                </div>
-                <div class="input-group">
-                    <input type="email" name="email" placeholder="Email" required>
-                    <i>✉️</i>
-                </div>
-                <div class="input-group">
-                    <input type="password" name="password" placeholder="Password" required>
-                    <i>🔒</i>
-                </div>
-                <button type="submit" class="action-btn" id="signupBtn">Sign Up</button>
-            </form>
-        </div>
+<!-- Brand -->
+<a href="/" class="brand-logo" aria-label="SKR-HUB home">SKR‑HUB</a>
 
-        <!-- Overlay Container (trượt qua lại) -->
-        <div class="overlay-container">
-            <div class="overlay">
-                <div class="overlay-panel overlay-left">
-                    <h2>Hello, Friend!</h2>
-                    <p>Enter your personal details and start your journey with us</p>
-                    <button class="ghost" id="signInBtn">Sign In</button>
-                </div>
-                <div class="overlay-panel overlay-right">
-                    <h2>Welcome Back!</h2>
-                    <p>To keep connected with us please login with your personal info</p>
-                    <button class="ghost" id="signUpBtn">Sign Up</button>
-                </div>
+<!-- Welcome badge -->
+<p class="center-title" aria-hidden="true">✦ WELCOME BACK ✦</p>
+
+<!-- Feature pills -->
+<div class="feature-pills" aria-hidden="true">
+    <span class="pill"><i class="fas fa-brain"></i> Self‑Learning</span>
+    <span class="pill"><i class="fas fa-layer-group"></i> Flashcards</span>
+    <span class="pill"><i class="fas fa-clock"></i> Pomodoro</span>
+    <span class="pill"><i class="fas fa-chart-line"></i> Statistics</span>
+</div>
+
+<!-- ── MAIN CONTAINER ── -->
+<div class="container" id="mainContainer">
+
+    <!-- SIGN IN -->
+    <div class="form-container sign-in">
+        <form id="loginForm" novalidate aria-label="Sign in form">
+            <h2>Sign In</h2>
+
+            <div class="input-group">
+                <label for="loginEmail" class="sr-only">Email address</label>
+                <input type="email" id="loginEmail" name="email"
+                       placeholder="Email address"
+                       autocomplete="email" required
+                       aria-label="Email address">
+                <i class="fas fa-envelope field-icon" aria-hidden="true"></i>
             </div>
-        </div>
+
+            <div class="input-group">
+                <label for="loginPassword" class="sr-only">Password</label>
+                <input type="password" id="loginPassword" name="password"
+                       placeholder="Password"
+                       autocomplete="current-password" required
+                       aria-label="Password">
+                <i class="fas fa-lock field-icon" aria-hidden="true"></i>
+            </div>
+
+            <button type="submit" class="action-btn" id="loginBtn"
+                    aria-label="Sign in to your account">
+                <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
+            </button>
+
+            <a href="/forgot-password" class="forgot-password">
+                <i class="fas fa-key" aria-hidden="true"></i> Forgot password?
+            </a>
+        </form>
     </div>
 
-    <div class="footer">© 2026 SKR-HUB. All rights reserved. Designed by Nguyễn Doãn Hoàng</div>
-    <div class="toast" id="toastMsg"></div>
+    <!-- SIGN UP -->
+    <div class="form-container sign-up">
+        <form id="regForm" novalidate aria-label="Sign up form">
+            <h2>Create Account</h2>
 
-    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+            <div class="input-group">
+                <label for="regUsername" class="sr-only">Username</label>
+                <input type="text" id="regUsername" name="username"
+                       placeholder="Username (min 3 chars)"
+                       autocomplete="username" required
+                       aria-label="Username">
+                <i class="fas fa-user field-icon" aria-hidden="true"></i>
+            </div>
+
+            <div class="input-group">
+                <label for="regEmail" class="sr-only">Email address</label>
+                <input type="email" id="regEmail" name="email"
+                       placeholder="Email address"
+                       autocomplete="email" required
+                       aria-label="Email address">
+                <i class="fas fa-envelope field-icon" aria-hidden="true"></i>
+            </div>
+
+            <div class="input-group">
+                <label for="regPassword" class="sr-only">Password</label>
+                <input type="password" id="regPassword" name="password"
+                       placeholder="Password (min 6 chars)"
+                       autocomplete="new-password" required
+                       aria-label="Password">
+                <i class="fas fa-lock field-icon" aria-hidden="true"></i>
+            </div>
+
+            <!-- Password strength bar (login.css v2 supports this) -->
+            <div class="pw-strength" id="regPwStrength" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+
+            <button type="submit" class="action-btn" id="signupBtn"
+                    aria-label="Create your account">
+                <i class="fas fa-user-plus" aria-hidden="true"></i> Sign Up
+            </button>
+        </form>
+    </div>
+
+    <!-- OVERLAY -->
+    <div class="overlay-container" aria-hidden="true">
+        <div class="overlay">
+
+            <div class="overlay-panel overlay-left">
+                <h2>Hello, Friend!</h2>
+                <p>Already have an account? Sign in and continue your learning journey 🌸</p>
+                <button class="ghost" id="signInBtn" aria-label="Switch to sign in">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </div>
+
+            <div class="overlay-panel overlay-right">
+                <h2>Welcome Back!</h2>
+                <p>New here? Join SKR-HUB and start mastering your goals today ✨</p>
+                <button class="ghost" id="signUpBtn" aria-label="Switch to sign up">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+    © 2026 SKR‑HUB · Designed by
+    <strong>Nguyễn Doãn Hoàng</strong>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toastMsg" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+/* ── SAKURA ── */
+const PETAL_ICONS = ["🌸","💮","✨","🌸","🌸"];
+const MAX_PETALS  = 18;
+(function initSakura(){
+    setInterval(()=>{
+        if(document.visibilityState!=='visible') return;
+        if(document.querySelectorAll('.sakura-petal').length>=MAX_PETALS) return;
+        const p=document.createElement('div');
+        p.className='sakura-petal';
+        p.textContent=PETAL_ICONS[Math.floor(Math.random()*PETAL_ICONS.length)];
+        const dur=Math.random()*6+7, delay=Math.random()*2;
+        p.style.cssText=`left:${Math.random()*100}vw;font-size:${Math.random()*16+13}px;animation-duration:${dur}s;animation-delay:${delay}s;`;
+        document.body.appendChild(p);
+        p.addEventListener('mouseenter',()=>{p.classList.add('linger');setTimeout(()=>p.remove(),1100)},{once:true});
+        setTimeout(()=>{if(p.isConnected)p.remove();},(dur+delay)*1000);
+    },400);
+})();
+
+/* ── PW STRENGTH ── */
+function getPwStrength(pw){
+    let s=0;
+    if(pw.length>=8) s++;
+    if(/[A-Z]/.test(pw)) s++;
+    if(/[0-9]/.test(pw)) s++;
+    if(/[^A-Za-z0-9]/.test(pw)) s++;
+    return s<=1?1:s<=2?2:3;
+}
+const regPwInput  = document.getElementById('regPassword');
+const pwStrengthEl= document.getElementById('regPwStrength');
+if(regPwInput && pwStrengthEl){
+    regPwInput.addEventListener('input',()=>{
+        const v=regPwInput.value;
+        pwStrengthEl.dataset.level=v.length?getPwStrength(v):'';
+    });
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>
