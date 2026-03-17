@@ -469,55 +469,48 @@ def dashboard():
     return render_template("dashboard.html", name=session.get("user_name", "User"))
 
 # ── Password reset ────────────────────────────────────────────────────────────
-_reset_tokens: dict[str, dict[str, Any]] = {}
+_reset_tokens: dict = {}   # {token: {user_id, expires}}
 
-
-@app.route("/forgot-password", methods=["GET"])
+@app.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
-    return render_template("forgot-password.html")
+    return render_template('forgot-password.html')
 
-
-@app.route("/forgot-password", methods=["POST"])
+@app.route('/forgot-password', methods=['POST'])
 @rate_limit(max_calls=5, window_secs=300)
 def forgot_password_action():
-    email = sanitize(request.form.get("email", ""), LEN_EMAIL).lower()
+    email = sanitize(request.form.get('email', ''), 254).lower()
     with get_db() as conn:
-        user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        user = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
     if not user:
-        return _err("Email not found.", 404)
+        return jsonify({'success': False, 'message': 'Email not found.'}), 404
     token = secrets.token_urlsafe(32)
     _reset_tokens[token] = {
-        "user_id": user["id"],
-        "expires": datetime.now() + timedelta(hours=1),
+        'user_id': user['id'],
+        'expires': datetime.now() + timedelta(hours=1)
     }
-    reset_link = url_for("reset_password_page", token=token, _external=True)
-    log.info("Password reset link: %s", reset_link)
-    return _ok({"message": "Reset link generated.", "reset_link": reset_link})
+    reset_link = url_for('reset_password_page', token=token, _external=True)
+    print(f"[SKR] Password reset → {reset_link}")
+    return jsonify({'success': True, 'reset_link': reset_link})
 
+@app.route('/reset-password/<token>', methods=['GET'])
+def reset_password_page(token):
+    return render_template('reset-password.html', token=token)
 
-@app.route("/reset-password/<token>", methods=["GET"])
-def reset_password_page(token: str):
-    return render_template("reset-password.html", token=token)
-
-
-@app.route("/reset-password/<token>", methods=["POST"])
+@app.route('/reset-password/<token>', methods=['POST'])
 @rate_limit(max_calls=5, window_secs=60)
-def reset_password_action(token: str):
+def reset_password_action(token):
     data = _reset_tokens.get(token)
-    if not data or data["expires"] < datetime.now():
-        return _err("Invalid or expired token.")
-    pw = request.form.get("password", "").strip()
+    if not data or data['expires'] < datetime.now():
+        return jsonify({'error': 'Invalid or expired token.'}), 400
+    pw = request.form.get('password', '').strip()
     if len(pw) < 6:
-        return _err("Password must be at least 6 characters.")
+        return jsonify({'error': 'Password must be at least 6 characters.'}), 400
     with get_db() as conn:
-        conn.execute(
-            "UPDATE users SET password = ? WHERE id = ?",
-            (generate_password_hash(pw), data["user_id"]),
-        )
+        conn.execute('UPDATE users SET password = ? WHERE id = ?',
+                     (generate_password_hash(pw), data['user_id']))
         conn.commit()
     del _reset_tokens[token]
-    return _ok({"message": "Password reset successful."})
-
+    return jsonify({'message': 'Password reset successful.'})
 # ── API: User stats ───────────────────────────────────────────────────────────
 @app.route("/api/user/stats", methods=["GET"])
 @login_required
