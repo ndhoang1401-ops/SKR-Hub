@@ -1,452 +1,405 @@
 /**
- * SKR-HUB DASHBOARD MASTER ULTIMATE — v2.1 FIXED
- *
- * BUG FIXES:
- * [B1] CRITICAL — icons[] scope lỗi: định nghĩa trong initSakura() nhưng createPetal() dùng như global → ReferenceError
- * [B2] CRITICAL — initVolumeControl: innerHTML += sau appendChild() sẽ destroy slider element khỏi DOM
- * [B3] MAJOR   — Timer drift: setInterval(1000ms) lệch ~500ms sau 30 phút → dùng Date.now()
- * [B4] MAJOR   — startTimer() không clearInterval cũ trước khi tạo mới → timer chạy đôi
- * [B5] MAJOR   — audio.play() không try/catch → crash khi browser block autoplay
- * [B6] MEDIUM  — addXP() gọi loadUserStats() mỗi 60s → quá nhiều API call → debounce
- * [B7] MEDIUM  — renderNotes() dùng innerHTML với n.text user input → XSS vulnerability
- * [B8] MINOR   — logout listener nằm ngoài DOMContentLoaded → có thể chạy trước khi DOM ready
- * [B9] MINOR   — sakura memory leak: 2 petal/300ms không có giới hạn → DOM phình to
- *
- * IMPROVEMENTS:
- * [+] Theme toggle (dark/light mode)
- * [+] visibilitychange pause timer khi tab ẩn
- * [+] Notification permission + browser notification khi hết giờ
- * [+] Keyboard shortcuts: Space (start/pause), R (reset), F (focus mode)
+ * SKR-HUB dashboard.js v4.0 — VIP PRO MAX
+ * Tích hợp:
+ * - Alarm với preload âm thanh, fallback visual
+ * - Focus mode + ghi chú Pomodoro hiển thị ở rank
+ * - Achievements đẹp mắt, heatmap động
+ * - Music Zone với Lofi, YouTube, Spotify, SoundCloud
+ * - Theme toggle sáng/tối, keyboard shortcuts
+ * - Hiệu ứng confetti, toast, sakura petals
  */
 
-// ==================== GLOBAL STATE ====================
+// ============================================
+// 1. STATE & CONSTANTS
+// ============================================
 const SKR = {
-    xp: 0,
-    level: 1,
-    streak: 0,
-    goal: 30,
-    totalMinutes: 0,
-    focusCount: 0,
-    tasksCompleted: 0,
-    ranks: ["⚡ TÂN BINH", "🌟 HỌC GIẢ", "🔥 BẬC THẦY", "💫 THẦN ĐỒNG", "👑 SKR GOD"],
-    rankMessages: [
-        "Every master was once a beginner. Keep going!",
+    xp: 0, level: 1, streak: 0, goal: 30,
+    totalMinutes: 0, focusCount: 0,
+    xp_for_level: 0, xp_for_next: 100,
+    achievements: [],
+    ranks: ['⚡ NEWBIE', '🌟 SCHOLAR', '🔥 MASTER', '💫 PRODIGY', '👑 SKR GOD'],
+    rankMsg: [
+        'Every master was once a beginner.',
         "You're on fire! Consistency is key.",
-        "Greatness is built one day at a time.",
-        "You're unstoppable! The sky is the limit.",
-        "Legendary status achieved. Inspire others!"
+        'Greatness is built one day at a time.',
+        "Unstoppable! The sky is the limit.",
+        'Legendary. Inspire others!'
     ],
     quotes: [
-        "Discipline is the bridge between goals and accomplishment.",
+        'Discipline is the bridge between goals and accomplishment.',
         "Don't watch the clock; do what it does. Keep going.",
-        "Success is the sum of small efforts, repeated day in and day out.",
-        "The expert in anything was once a beginner.",
-        "Your only limit is your mind.",
-        "Focus on being productive instead of busy.",
-        "The future depends on what you do today."
-    ],
-    achievements: []
+        'Success is the sum of small efforts, repeated day in and day out.',
+        'The expert in anything was once a beginner.',
+        'Your only limit is your mind.',
+        'Focus on being productive instead of busy.',
+        'The future depends on what you do today.'
+    ]
 };
 
-// ==================== KHỞI TẠO ====================
-document.addEventListener('DOMContentLoaded', async () => {
-    // User-specific localStorage isolation
-    const _uid = document.querySelector('meta[name="skr-uid"]')?.content || '0';
-    window.SKR_UID = _uid;
-    window.NOTE_KEY = `skr_notes_${_uid}`;
+const ACHIEVEMENTS = [
+    { key: 'first_focus', icon: '🎯', name: 'First Step', desc: 'First focus session' },
+    { key: 'focus_5', icon: '🧠', name: 'Deep Thinker', desc: '5 focus sessions' },
+    { key: 'focus_10', icon: '🏆', name: 'Focus Master', desc: '10 focus sessions' },
+    { key: 'focus_25', icon: '⚡', name: 'Zen Mode', desc: '25 focus sessions' },
+    { key: 'streak_3', icon: '🔥', name: '3-Day Streak', desc: '3 days in a row' },
+    { key: 'streak_7', icon: '💥', name: 'Week Streak', desc: '7 days in a row' },
+    { key: 'streak_30', icon: '🌟', name: 'Month Legend', desc: '30 days straight' },
+    { key: 'xp_100', icon: '✨', name: 'Rising Star', desc: '100 XP earned' },
+    { key: 'xp_500', icon: '💫', name: 'XP Hunter', desc: '500 XP earned' },
+    { key: 'xp_1000', icon: '👑', name: 'XP Legend', desc: '1,000 XP earned' },
+    { key: 'notes_5', icon: '📝', name: 'Note Taker', desc: '5 notes added' },
+    { key: 'level_3', icon: '🚀', name: 'Fast Learner', desc: 'Reach Level 3' },
+    { key: 'level_5', icon: '💎', name: 'Elite Scholar', desc: 'Reach Level 5' },
+    { key: 'level_10', icon: '🌈', name: 'SKR Deity', desc: 'Reach Level 10' },
+];
 
-    initWelcome();
-    initSakura();
-    initDailyQuote();
-    await loadUserStats();
-    initHeatmap();
-    renderNotes();
-    initVolumeControl();
-    initFocusExit();
-    startTimeTracker();
-    initPomodoroControls();
-    initThemeToggle();         // [+] theme toggle
-    initKeyboardShortcuts();   // [+] keyboard shortcuts
-    requestNotifPermission();  // [+] browser notification
-    initLogout();              // [B8] fix: đưa vào đây thay vì ngoài DOMContentLoaded
-});
+// ============================================
+// 2. AUDIO & ALARM (với fallback mạnh mẽ)
+// ============================================
+let _audioUnlocked = false;
 
-// ==================== WELCOME ====================
-function initWelcome() {
-    const overlay = document.getElementById('welcome-overlay');
-    if (!overlay) return;
-    setTimeout(() => {
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-        setTimeout(() => overlay.remove(), 1000);
-    }, 2500);
+function initAudioUnlock() {
+    const unlock = () => {
+        if (_audioUnlocked) return;
+        // Âm thanh silent để đánh thức AudioContext
+        const silent = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2ozNWKi2NyraTI1Y6La3KtpMjNjodrcq2kyM2Oh2tyraTA0ZKLb3KtoMTRlo9zcq2gxM2Wj3NyraDE0ZaTc3KtpMDRlpNzcq2oxM2ek3NyraTE0Z6Xc3KtqMTVopd3cq2oxNGim3dyrajE0aanc3KtrMjRqqdzcq2syM2uq3NyraTM0a6rc3KtpMzRsq9zcq2kzNGyr3NyraTM0a6rc3KtpMzRsq9zcq2kzNGyr3NyraTM0a6rc3KtpMzRsq9zcq2kzNGyr3NyraTM0a6rc3KtpMzRsq9zcq2kzNGyr3NyraTM0a6rc3KtpMzRsq9zcq2kzNGyr3NyraTM=');
+        silent.volume = 0.001;
+        silent.play().then(() => { _audioUnlocked = true; }).catch(() => {});
+    };
+    document.addEventListener('click', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
 }
 
-// ==================== SAKURA ====================
-// [B1] FIX: đưa icons ra module scope để createPetal() dùng được
-const PETAL_ICONS = ["🌸", "💮", "✨", "🌸", "🌸", "🌸"];
-// [B9] FIX: giới hạn số petal trên DOM
-const MAX_PETALS = 30;
-let petalInterval = null;
-
-function initSakura() {
-    petalInterval = setInterval(() => {
-        if (document.visibilityState !== 'visible') return;
-        // [B9] đếm petal hiện có trước khi thêm
-        const current = document.querySelectorAll('.sakura-petal').length;
-        if (current >= MAX_PETALS) return;
-        createPetal();
-        if (current + 1 < MAX_PETALS) createPetal();
-    }, 300);
+function getAlarmUrl() {
+    const sel = document.getElementById('alarmSound');
+    if (!sel) return null;
+    const opt = sel.options[sel.selectedIndex];
+    return opt?.dataset?.url || null;
 }
 
-function createPetal() {
-    const petal = document.createElement('div');
-    petal.className = 'sakura-petal';
-    // [B1] FIX: dùng PETAL_ICONS thay vì icons (was ReferenceError)
-    petal.textContent = PETAL_ICONS[Math.floor(Math.random() * PETAL_ICONS.length)];
-    petal.style.cssText = `
-        left: ${Math.random() * 100}vw;
-        font-size: ${Math.random() * 20 + 15}px;
-        animation-duration: ${Math.random() * 6 + 6}s;
-        animation-delay: ${Math.random() * 2}s;
-        opacity: ${(Math.random() * 0.6 + 0.4).toFixed(2)};
-    `;
-    document.body.appendChild(petal);
-
-    petal.addEventListener('mouseenter', () => {
-        petal.classList.add('linger');
-        setTimeout(() => petal.remove(), 1000);
-    }, { once: true });
-
-    const lifetime = (parseFloat(petal.style.animationDuration) +
-                      parseFloat(petal.style.animationDelay)) * 1000;
-    setTimeout(() => {
-        if (!petal.isConnected) return;
-        if (Math.random() < 0.15) {
-            petal.classList.add('linger');
-            setTimeout(() => petal.remove(), 1000);
-        } else {
-            petal.remove();
-        }
-    }, lifetime);
+function getVolume() {
+    return parseFloat(document.getElementById('volumeSlider')?.value ?? '0.8');
 }
 
-// ==================== QUOTE ====================
-function initDailyQuote() {
-    const el = document.getElementById('daily-quote');
-    if (!el) return;
-    // dùng ngày để quote không đổi mỗi lần reload
-    const idx = new Date().getDate() % SKR.quotes.length;
-    el.textContent = `"${SKR.quotes[idx]}"`;
-}
+async function playAlarmSound() {
+    const url = getAlarmUrl();
+    if (!url) return;
+    const vol = getVolume();
 
-// ==================== LEVEL & XP ====================
-async function loadUserStats() {
+    // Method 1: Audio element (đơn giản, nhanh)
     try {
-        const res = await fetch('/api/user/stats');
-        if (!res.ok) throw new Error('API failed');
-        const data = await res.json();
+        const a = new Audio(url);
+        a.volume = Math.max(0, Math.min(1, vol));
+        await a.play();
+        return;
+    } catch (_) {}
 
-        SKR.xp             = data.xp             || 0;
-        SKR.xp_for_level   = data.xp_for_level   || undefined;
-        SKR.xp_for_next    = data.xp_for_next    || undefined;
-        SKR.level          = data.level           || 1;
-        SKR.streak         = data.streak          || 0;
-        SKR.totalMinutes   = data.total_minutes   || 0;
-        SKR.goal           = data.goal            || 30;
-        SKR.focusCount     = data.focus_count     || 0;
-        SKR.tasksCompleted = data.tasks_completed || 0;
-        SKR.achievements   = data.achievements    || [];
-
-        updateLvlUI();
-        setText('streakCount', SKR.streak);
-        setText('goalDisplay', SKR.totalMinutes);
-        setText('goalTarget',  SKR.goal);
-        setText('focusCount',  SKR.focusCount);
-        renderAchievements();
+    // Method 2: AudioContext (fallback cho trình duyệt chặn autoplay)
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') await ctx.resume();
+        const resp = await fetch(url);
+        const buf = await ctx.decodeAudioData(await resp.arrayBuffer());
+        const src = ctx.createBufferSource();
+        const gain = ctx.createGain();
+        gain.gain.value = vol;
+        src.buffer = buf;
+        src.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(0);
     } catch (e) {
-        console.warn('[SKR] Using localStorage fallback', e);
-        loadFromLocal();
+        console.warn('[SKR] Alarm audio failed:', e);
+        // Fallback visual: nhấp nháy timer
+        document.getElementById('timerDisplay')?.animate(
+            [{ color: '#ff7eb3' }, { color: '#00eaff' }, { color: '#ff7eb3' }],
+            { duration: 500, iterations: 6 }
+        );
     }
 }
 
-function loadFromLocal() {
-    SKR.xp         = parseInt(localStorage.getItem('skr_xp'))          || 0;
-    SKR.level      = parseInt(localStorage.getItem('skr_level'))        || 1;
-    SKR.streak     = parseInt(localStorage.getItem('skr_streak'))       || 0;
-    SKR.focusCount = parseInt(localStorage.getItem('skr_focus_count'))  || 0;
-    updateLvlUI();
+function testAlarm() {
+    playAlarmSound();
+    showToast('🔔 Testing alarm...');
 }
 
-// [B6] FIX: debounce loadUserStats sau khi addXP — không gọi mỗi 60s
-let _reloadTimer = null;
-async function addXP(amount) {
+// ============================================
+// 3. KHỞI TẠO & TIỆN ÍCH CHUNG
+// ============================================
+document.addEventListener('DOMContentLoaded', async () => {
+    const uid = document.querySelector('meta[name="skr-uid"]')?.content || '0';
+    window.SKR_UID = uid;
+    window.NOTE_KEY = `skr_notes_${uid}`;
+
+    initWelcome();
+    initSakura();
+    initQuote();
+    initAudioUnlock();
+    await loadStats();
+    initHeatmap();
+    renderNotes();
+    loadLatestNote();          // 👈 load Pomodoro note từ localStorage
+    initThemeToggle();
+    initKeyboard();
+    requestNotifPerm();
+    startTimeTracker();
+    initLogout();
+});
+
+// ============================================
+// 4. WELCOME OVERLAY
+// ============================================
+function initWelcome() {
+    const el = document.getElementById('welcome-overlay');
+    if (!el) return;
+    setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        setTimeout(() => el.remove(), 1000);
+    }, 2500);
+}
+
+// ============================================
+// 5. SAKURA PETALS (cánh hoa đào rơi)
+// ============================================
+const PETALS = ['🌸', '💮', '✨', '🌸', '🌸'];
+function initSakura() {
+    setInterval(() => {
+        if (document.hidden) return;
+        if (document.querySelectorAll('.sakura-petal').length >= 25) return;
+        const p = document.createElement('div');
+        p.className = 'sakura-petal';
+        p.textContent = PETALS[Math.random() * PETALS.length | 0];
+        const dur = (Math.random() * 6 + 7).toFixed(1);
+        const delay = (Math.random() * 2).toFixed(1);
+        p.style.cssText = `left:${(Math.random() * 100).toFixed(1)}vw;font-size:${(Math.random() * 16 + 12) | 0}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+        document.body.appendChild(p);
+        p.addEventListener('mouseenter', () => {
+            p.classList.add('linger');
+            setTimeout(() => p.remove(), 1000);
+        }, { once: true });
+        setTimeout(() => {
+            if (p.isConnected) p.remove();
+        }, (+dur + +delay + 0.5) * 1000);
+    }, 350);
+}
+
+// ============================================
+// 6. QUOTE NGẪU NHIÊN
+// ============================================
+function initQuote() {
+    const el = document.getElementById('daily-quote');
+    if (el) el.textContent = `"${SKR.quotes[new Date().getDate() % SKR.quotes.length]}"`;
+}
+
+// ============================================
+// 7. STATS & XP
+// ============================================
+async function loadStats() {
+    try {
+        const res = await fetch('/api/user/stats');
+        if (!res.ok) throw new Error();
+        const d = await res.json();
+        SKR.xp = d.xp || 0;
+        SKR.xp_for_level = d.xp_for_level ?? 0;
+        SKR.xp_for_next = d.xp_for_next ?? 100;
+        SKR.level = d.level || 1;
+        SKR.streak = d.streak || 0;
+        SKR.totalMinutes = d.total_minutes || 0;
+        SKR.goal = d.goal || 30;
+        SKR.focusCount = d.focus_count || 0;
+        SKR.achievements = d.achievements || [];
+        updateUI();
+    } catch {
+        // fallback localStorage
+        SKR.xp = parseInt(localStorage.getItem('skr_xp')) || 0;
+        SKR.level = parseInt(localStorage.getItem('skr_level')) || 1;
+        SKR.streak = parseInt(localStorage.getItem('skr_streak')) || 0;
+        updateUI();
+    }
+}
+
+function updateUI() {
+    const ri = Math.min(SKR.level - 1, SKR.ranks.length - 1);
+    setText('lvlNumber', SKR.level);
+    setText('rankName', SKR.ranks[ri]);
+    setText('rankMessage', SKR.rankMsg[ri]);
+    setText('streakCount', SKR.streak);
+    setText('focusCount', SKR.focusCount);
+    setText('goalDisplay', SKR.totalMinutes);
+    setText('goalTarget', SKR.goal);
+
+    // XP progress
+    const start = SKR.xp_for_level ?? xpForLevel(SKR.level);
+    const end = SKR.xp_for_next ?? xpForLevel(SKR.level + 1);
+    const inLvl = Math.max(0, SKR.xp - start);
+    const needed = Math.max(1, end - start);
+    const pct = Math.min(100, (inLvl / needed) * 100);
+
+    setText('currentXp', inLvl);
+    setText('xpMax', needed);
+    const fill = document.getElementById('xpFill');
+    if (fill) {
+        fill.style.width = pct.toFixed(1) + '%';
+        fill.setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    // Goal bar
+    const gPct = SKR.goal > 0 ? Math.min(100, (SKR.totalMinutes / SKR.goal) * 100) : 0;
+    const gFill = document.getElementById('goalBarFill');
+    if (gFill) gFill.style.width = gPct.toFixed(1) + '%';
+    setText('goalPct', Math.round(gPct) + '%');
+
+    renderAchievements();
+}
+
+function xpForLevel(l) {
+    if (l <= 1) return 0;
+    return Math.floor(50 * Math.pow(l - 1, 1.6));
+}
+
+let _statTimer = null;
+async function addXP(amt) {
     try {
         const res = await fetch('/api/update_stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'xp_time', value: amount })
+            body: JSON.stringify({ action: 'xp_time', value: amt })
         });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.level_up > 0) {
+        const d = await res.json();
+        if (d.level_up > 0) {
             showToast('🎉 LEVEL UP!', false, 5000);
-            confettiEffect();
+            confetti();
         }
-        // [B6] debounce: gộp nhiều lần addXP trong 3s thành 1 lần reload
-        clearTimeout(_reloadTimer);
-        _reloadTimer = setTimeout(() => loadUserStats(), 3000);
-    } catch (e) { /* silent */ }
+        clearTimeout(_statTimer);
+        _statTimer = setTimeout(loadStats, 3000);
+    } catch { }
 }
 
-function updateLvlUI() {
-    const rankIndex = Math.min(SKR.level - 1, SKR.ranks.length - 1);
-    setText('lvlNumber',  SKR.level);
-    setText('rankName',   SKR.ranks[rankIndex]);
-    setText('currentXp',  SKR.xp);
-
-    // Use server values if available (most accurate), else calculate locally
-    const currentXp = SKR.xp_for_level !== undefined ? SKR.xp_for_level : getXpForLevel(SKR.level);
-    const nextXp    = SKR.xp_for_next  !== undefined ? SKR.xp_for_next  : getXpForLevel(SKR.level + 1);
-    const denom     = nextXp - currentXp;
-    const percent   = denom > 0
-        ? Math.min(100, Math.max(0, ((SKR.xp - currentXp) / denom) * 100))
-        : 100;
-    const fill = document.getElementById('xpFill');
-    if (fill) fill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
-
-    setText('rankMessage', SKR.rankMessages[rankIndex] || SKR.rankMessages[0]);
-}
-
-// ── XP formula — MUST match main.py xp_for_level() ──
-function getXpForLevel(level) {
-    if (level <= 1) return 0;
-    return Math.floor(50 * Math.pow(level - 1, 1.6));
-}
-
-// helper tránh lặp getElementById + innerText
-function setText(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-}
-
-// ==================== TIME TRACKER ====================
-let _lastTickTime = Date.now();
-let _accumulatedMs = 0;
-
+// ============================================
+// 8. TIME TRACKER (tự động cộng XP mỗi phút)
+// ============================================
+let _lt = Date.now(), _acc = 0;
 function startTimeTracker() {
-    // [B3] FIX: dùng Date.now() delta thay vì tin tưởng setInterval đúng 1000ms
     setInterval(() => {
-        if (document.visibilityState !== 'visible') {
-            _lastTickTime = Date.now(); // reset khi tab quay lại
-            return;
-        }
-        const now   = Date.now();
-        const delta = now - _lastTickTime;
-        _lastTickTime = now;
-        _accumulatedMs += delta;
-
-        // mỗi 60s thực tế mới cộng XP
-        if (_accumulatedMs >= 60_000) {
-            _accumulatedMs -= 60_000;
+        if (document.hidden) { _lt = Date.now(); return; }
+        const now = Date.now();
+        _acc += now - _lt; _lt = now;
+        if (_acc >= 60000) {
+            _acc -= 60000;
             addXP(1);
         }
     }, 1000);
 }
 
-// ==================== POMODORO ====================
-let timerInterval  = null;
-let timerEndTime   = null;   // [B3] dùng timestamp thay vì đếm ngược
-let timerDuration  = 25 * 60 * 1000;
-let isRunning      = false;
-let volume         = 0.7;
+// ============================================
+// 9. POMODORO TIMER
+// ============================================
+let timerInterval = null, timerEndMs = null, timerRemMs = 25 * 60 * 1000;
+let isRunning = false;
+let _totalMs = 25 * 60 * 1000; // for arc progress
 
-function initPomodoroControls() {
-    ['setH', 'setM', 'setS'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input && !input.closest('.time-input-group')) {
-            wrapInputWithButtons(input, id.slice(-1));
-        }
-    });
+function adjustTimer(id, delta) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const max = id === 'setH' ? 99 : 59;
+    el.value = String(Math.min(max, Math.max(0, (parseInt(el.value) || 0) + delta))).padStart(2, '0');
+    if (!isRunning) resetDisplay();
 }
 
-function wrapInputWithButtons(input, label) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'time-input-group';
-
-    const make = (symbol, delta) => {
-        const btn = document.createElement('button');
-        btn.innerHTML  = symbol;
-        btn.type       = 'button';
-        btn.addEventListener('click', () => {
-            let val = parseInt(input.value) || 0;
-            const max = (label === 'H') ? 99 : 59;
-            val = Math.min(max, Math.max(0, val + delta));
-            input.value = val.toString().padStart(2, '0');
-        });
-        return btn;
-    };
-
-    input.parentNode.insertBefore(wrapper, input);
-    wrapper.append(make('−', -1), input, make('+', 1));
-    input.style.width = '60px';
-    input.style.textAlign = 'center';
-    if (!input.classList.contains('candy-input')) input.classList.add('candy-input');
-}
-
-function initVolumeControl() {
-    const select = document.getElementById('alarmSound');
-    if (!select) return;
-
-    // [B2] FIX: KHÔNG dùng innerHTML += sau appendChild → tạo riêng từng element
-    const volDiv   = document.createElement('div');
-    volDiv.className = 'volume-control';
-
-    const iconDown = document.createElement('i');
-    iconDown.className = 'fas fa-volume-down';
-
-    const slider = document.createElement('input');
-    slider.type      = 'range';
-    slider.min       = '0';
-    slider.max       = '1';
-    slider.step      = '0.05';
-    slider.value     = volume;
-    slider.className = 'volume-slider';
-
-    const iconUp = document.createElement('i');
-    iconUp.className = 'fas fa-volume-up';
-
-    // thứ tự: iconDown → slider → iconUp (không innerHTML nào cả)
-    volDiv.append(iconDown, slider, iconUp);
-    select.parentNode.insertBefore(volDiv, select.nextSibling);
-
-    slider.addEventListener('input', e => {
-        volume = parseFloat(e.target.value);
-    });
+function getTimerMs() {
+    const h = parseInt(document.getElementById('setH')?.value) || 0;
+    const m = parseInt(document.getElementById('setM')?.value) || 0;
+    const s = parseInt(document.getElementById('setS')?.value) || 0;
+    return ((h * 3600 + m * 60 + s) || 25 * 60) * 1000;
 }
 
 function startTimer() {
     if (isRunning) return;
-
-    // [B4] FIX: clear interval cũ trước khi tạo mới
     clearInterval(timerInterval);
-
-    const h = parseInt(document.getElementById('setH')?.value) || 0;
-    const m = parseInt(document.getElementById('setM')?.value) || 0;
-    const s = parseInt(document.getElementById('setS')?.value) || 0;
-    const totalSec = (h * 3600) + (m * 60) + s || 25 * 60;
-
-    timerDuration = totalSec * 1000;
-    // [B3] FIX: ghi timestamp kết thúc thay vì đếm ngược
-    timerEndTime  = Date.now() + timerDuration;
-    isRunning     = true;
-
-    timerInterval = setInterval(tickTimer, 500); // poll 2x/s để chính xác hơn
-    updateDisplay();
+    _totalMs = timerRemMs > 1000 ? timerRemMs : getTimerMs();
+    timerRemMs = _totalMs;
+    timerEndMs = Date.now() + _totalMs;
+    isRunning = true;
+    timerInterval = setInterval(tickTimer, 250);
+    document.getElementById('startBtn')?.classList.add('running');
     showToast('⏳ Focus session started!');
+    _audioUnlocked = true; // user đã tương tác
 }
 
 function tickTimer() {
     if (!isRunning) return;
-    const remaining = timerEndTime - Date.now();
-    if (remaining <= 0) {
-        handleTimerComplete();
-    } else {
-        updateDisplayMs(remaining);
-    }
+    const rem = timerEndMs - Date.now();
+    if (rem <= 0) { handleComplete(); return; }
+    timerRemMs = rem;
+    updateTimerDisplay(rem);
+    updateArc(rem);
 }
 
 function pauseTimer() {
     if (!isRunning) return;
-    // lưu thời gian còn lại để tiếp tục sau
-    timerDuration = Math.max(0, timerEndTime - Date.now());
+    timerRemMs = Math.max(0, timerEndMs - Date.now());
     clearInterval(timerInterval);
     isRunning = false;
-    showToast('⏸️ Timer paused');
+    document.getElementById('startBtn')?.classList.remove('running');
+    showToast('⏸️ Paused');
 }
 
 function resumeTimer() {
-    if (isRunning || timerDuration <= 0) return;
-    timerEndTime  = Date.now() + timerDuration;
-    isRunning     = true;
-    timerInterval = setInterval(tickTimer, 500);
-    showToast('▶️ Timer resumed');
+    if (isRunning || timerRemMs <= 0) return;
+    timerEndMs = Date.now() + timerRemMs;
+    isRunning = true;
+    timerInterval = setInterval(tickTimer, 250);
+    showToast('▶️ Resumed');
 }
 
 function resetTimer() {
     clearInterval(timerInterval);
-    isRunning    = false;
-    timerEndTime = null;
-    timerDuration = 25 * 60 * 1000;
-    // hiển thị lại giá trị từ input
-    const h = parseInt(document.getElementById('setH')?.value) || 0;
-    const m = parseInt(document.getElementById('setM')?.value) || 25;
-    const s = parseInt(document.getElementById('setS')?.value) || 0;
+    isRunning = false;
+    timerEndMs = null;
+    timerRemMs = getTimerMs();
+    _totalMs = timerRemMs;
+    document.getElementById('startBtn')?.classList.remove('running');
+    resetDisplay();
+    showToast('↺ Reset');
+}
+
+function resetDisplay() {
+    updateTimerDisplay(getTimerMs());
+    updateArc(getTimerMs(), getTimerMs());
+}
+
+function updateTimerDisplay(ms) {
+    const tot = Math.max(0, Math.ceil(ms / 1000));
+    const h = Math.floor(tot / 3600);
+    const m = Math.floor((tot % 3600) / 60);
+    const s = tot % 60;
     const disp = document.getElementById('timerDisplay');
-    if (disp) disp.textContent =
-        `${h > 0 ? h + ':' : ''}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    showToast('↺ Timer reset');
+    if (disp) disp.textContent = `${h ? h + ':' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function updateDisplay() {
-    if (timerEndTime) {
-        updateDisplayMs(timerEndTime - Date.now());
-    }
+function updateArc(remMs, totalMs) {
+    const arc = document.getElementById('timerArc');
+    if (!arc) return;
+    const total = totalMs ?? _totalMs;
+    const pct = total > 0 ? Math.max(0, Math.min(1, remMs / total)) : 1;
+    const circ = 2 * Math.PI * 68; // r=68
+    arc.style.strokeDasharray = circ.toFixed(2);
+    arc.style.strokeDashoffset = (circ * (1 - pct)).toFixed(2);
 }
 
-function updateDisplayMs(ms) {
-    const totalSec = Math.max(0, Math.ceil(ms / 1000));
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    const disp = document.getElementById('timerDisplay');
-    if (disp) disp.textContent =
-        `${h > 0 ? h + ':' : ''}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-async function handleTimerComplete() {
+async function handleComplete() {
     clearInterval(timerInterval);
     isRunning = false;
+    timerRemMs = 0;
+    document.getElementById('startBtn')?.classList.remove('running');
+    updateArc(0, _totalMs);
 
-    // [B5] FIX: try/catch cho audio.play() — browser có thể block autoplay
-    try {
-        const soundSrc = document.getElementById('alarmSound')?.value;
-        if (soundSrc) {
-            // Try AudioContext first (works even without prior user gesture in some browsers)
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            if (ctx.state === 'suspended') await ctx.resume();
-            const resp = await fetch(soundSrc);
-            const buf  = await resp.arrayBuffer();
-            const decoded = await ctx.decodeAudioData(buf);
-            const src = ctx.createBufferSource();
-            const gain = ctx.createGain();
-            gain.gain.value = volume;
-            src.buffer = decoded;
-            src.connect(gain);
-            gain.connect(ctx.destination);
-            src.start(0);
-        }
-    } catch (e) {
-        // Fallback: plain Audio element
-        try {
-            const soundSrc = document.getElementById('alarmSound')?.value;
-            if (soundSrc) {
-                const snd = new Audio(soundSrc);
-                snd.volume = volume;
-                snd.play().catch(() => {});
-            }
-        } catch (_) {}
-        console.warn('[SKR] Audio via AudioContext blocked, used fallback');
-    }
+    // Phát âm thanh báo thức
+    playAlarmSound();
 
-    // [+] Browser notification nếu tab đang ẩn
-    if (document.visibilityState !== 'visible' &&
-        Notification.permission === 'granted') {
-        new Notification('SKR-HUB ✅', {
-            body: 'Focus session complete! +30 XP',
-            icon: '/static/icon.png'
-        });
+    // Thông báo trình duyệt nếu tab đang ẩn
+    if (document.hidden && Notification.permission === 'granted') {
+        new Notification('SKR-HUB ✅', { body: 'Focus session complete! +30 XP', icon: '/static/icon.png' });
     }
 
     try {
@@ -455,87 +408,108 @@ async function handleTimerComplete() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'focus_complete' })
         });
-        const data = await res.json();
-        if (data.level_up) showToast('🎉 LEVEL UP!', false, 4000);
-        loadUserStats();
-    } catch (e) { /* silent */ }
+        const d = await res.json();
+        if (d.level_up) {
+            showToast('🎉 LEVEL UP!', false, 4000);
+            confetti();
+        }
+        loadStats();
+    } catch { }
 
-    showToast('✅ FOCUS SESSION COMPLETE! +30 XP', false, 4000);
-    resetTimer();
+    showToast('✅ Session complete! +30 XP', false, 4500);
+
+    // Reset timer cho lần tiếp theo
+    timerRemMs = getTimerMs();
+    _totalMs = timerRemMs;
+    updateTimerDisplay(timerRemMs);
+    updateArc(timerRemMs, timerRemMs);
 }
 
-// ==================== FOCUS MODE ====================
+// ============================================
+// 10. FOCUS MODE & GHI CHÚ POMODORO
+// ============================================
+let focusActive = false;
 function toggleFocusMode() {
-    document.body.classList.toggle('focus-mode');
-    if (document.body.classList.contains('focus-mode')) {
-        showToast('🎯 Focus mode ON');
-        addExitFocusButton();
+    focusActive = !focusActive;
+    document.body.classList.toggle('focus-mode', focusActive);
+
+    const btn = document.getElementById('focusModeBtn');
+    const label = document.getElementById('focusModeLabel');
+    const noteContainer = document.querySelector('.focus-note-container'); // lấy container
+
+    if (focusActive) {
+        btn?.classList.add('active');
+        if (label) label.textContent = 'Exit Focus';
+        if (noteContainer) noteContainer.style.display = 'block'; // hiện ghi chú
+        showToast('🎯 Focus mode ON — ghi chú Pomodoro');
     } else {
+        btn?.classList.remove('active');
+        if (label) label.textContent = 'Focus Mode';
+        if (noteContainer) noteContainer.style.display = 'none'; // ẩn ghi chú
         showToast('Focus mode OFF');
-        removeExitFocusButton();
     }
 }
 
-function addExitFocusButton() {
-    if (document.getElementById('exit-focus-btn')) return;
-    const btn = document.createElement('button');
-    btn.id        = 'exit-focus-btn';
-    btn.className = 'candy-btn blue';
-    btn.innerHTML = '<i class="fas fa-times"></i> EXIT FOCUS';
-    btn.onclick   = () => {
-        document.body.classList.remove('focus-mode');
-        btn.remove();
-        showToast('Focus mode OFF');
-    };
-    document.body.appendChild(btn);
+function saveFocusNote() {
+    const note = document.getElementById('focusNote')?.value.trim();
+    if (!note) {
+        showToast('📝 Nhập ghi chú đi bạn!', true);
+        return;
+    }
+    localStorage.setItem('latestPomodoroNote', note);
+    document.getElementById('latestNoteText').innerText = note;
+    showToast('✅ Đã lưu note vào rank');
 }
 
-function removeExitFocusButton() {
-    document.getElementById('exit-focus-btn')?.remove();
+function loadLatestNote() {
+    const saved = localStorage.getItem('latestPomodoroNote');
+    if (saved) {
+        document.getElementById('latestNoteText').innerText = saved;
+    }
 }
 
-function initFocusExit() { /* reserved */ }
-
-// ==================== TOAST ====================
-let _toastTimeout = null;
-
-function showToast(msg, isErr = false, dur = 3000) {
-    const toast = document.getElementById('toast');
-    if (!toast) return;
-    clearTimeout(_toastTimeout); // tránh toast chồng nhau
-    toast.innerHTML = `<i class="fas ${isErr ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${escapeHtml(msg)}`;
-    toast.classList.toggle('error', isErr);
-    toast.classList.add('show');
-    _toastTimeout = setTimeout(() => toast.classList.remove('show'), dur);
+// ============================================
+// 11. TOAST NOTIFICATION
+// ============================================
+let _tm = null;
+function showToast(msg, err = false, dur = 3000) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    clearTimeout(_tm);
+    t.innerHTML = `<i class="fas ${err ? 'fa-exclamation-circle' : 'fa-check-circle'}" aria-hidden="true"></i> ${esc(msg)}`;
+    t.classList.toggle('toast--error', err);
+    t.classList.add('show');
+    _tm = setTimeout(() => t.classList.remove('show'), dur);
 }
 
-// ==================== NOTES ====================
+// ============================================
+// 12. NOTES (ghi chú nhanh)
+// ============================================
 let notes = (() => {
-    try { return JSON.parse(localStorage.getItem(window.NOTE_KEY || 'skr_notes')) || []; }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem(window.NOTE_KEY || 'skr_notes')) || []; } catch { return []; }
 })();
 
 function addNote() {
-    const input = document.getElementById('noteInput');
-    const text  = input?.value.trim();
-    if (!text) return;
-    notes.unshift({ id: Date.now(), text, done: false });
+    const inp = document.getElementById('noteInput');
+    const txt = inp?.value.trim();
+    if (!txt) return;
+    notes.unshift({ id: Date.now(), text: txt, done: false });
     saveNotes();
     renderNotes();
-    input.value = '';
+    inp.value = '';
     showToast('📝 Note added');
 }
 
 function toggleNote(id) {
-    const note = notes.find(n => n.id === id);
-    if (!note) return;
-    note.done = !note.done;
-    if (note.done) {
+    const n = notes.find(n => n.id === id);
+    if (!n) return;
+    n.done = !n.done;
+    if (n.done) {
         fetch('/api/update_stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'task_complete' })
-        }).then(() => loadUserStats()).catch(() => {});
+        }).then(() => loadStats()).catch(() => { });
     }
     saveNotes();
     renderNotes();
@@ -545,185 +519,274 @@ function deleteNote(id) {
     notes = notes.filter(n => n.id !== id);
     saveNotes();
     renderNotes();
-    showToast('🗑️ Note deleted');
+    showToast('🗑️ Deleted');
 }
 
 function saveNotes() {
-    try { localStorage.setItem(window.NOTE_KEY || 'skr_notes', JSON.stringify(notes)); }
-    catch (e) { console.warn('[SKR] localStorage full', e); }
+    try { localStorage.setItem(window.NOTE_KEY || 'skr_notes', JSON.stringify(notes)); } catch { }
 }
 
 function renderNotes() {
     const list = document.getElementById('noteList');
     if (!list) return;
+    list.innerHTML = '';
 
-    if (notes.length === 0) {
-        const empty = document.createElement('p');
-    empty.className = 'notes-empty';
-    empty.textContent = 'No notes yet. Add one above!';
-    list.appendChild(empty);
-    return;
+    if (!notes.length) {
+        const e = document.createElement('p');
+        e.className = 'notes-empty';
+        e.textContent = '✨ No notes yet — add one above!';
+        list.appendChild(e);
         return;
     }
 
-    // [B7] FIX: tạo DOM element thay vì innerHTML với user input → tránh XSS
-    list.innerHTML = '';
     notes.forEach(n => {
-        const item = document.createElement('div');
-        item.className = `note-item${n.done ? ' done' : ''}`;
+        const row = document.createElement('div');
+        row.className = `note-row${n.done ? ' note-row--done' : ''}`;
+        row.setAttribute('role', 'listitem');
 
-        const span = document.createElement('span');
-        span.textContent = n.text; // textContent, KHÔNG phải innerHTML
+        const txt = document.createElement('span');
+        txt.className = 'note-text';
+        txt.textContent = n.text;
 
-        const actions = document.createElement('div');
-        actions.className = 'note-actions';
+        const acts = document.createElement('div');
+        acts.className = 'note-actions';
 
-        const checkBtn = document.createElement('i');
-        checkBtn.className = 'fas fa-check-circle';
-        checkBtn.className += ' note-check';
-        checkBtn.addEventListener('click', () => toggleNote(n.id));
+        const chk = makeNoteBtn(
+            n.done ? 'fa-check-circle' : 'fa-circle',
+            `note-btn note-btn--check${n.done ? ' checked' : ''}`,
+            n.done ? 'Mark undone' : 'Mark done',
+            () => toggleNote(n.id)
+        );
+        const del = makeNoteBtn(
+            'fa-trash-alt',
+            'note-btn note-btn--del',
+            'Delete note',
+            () => deleteNote(n.id)
+        );
 
-        const delBtn = document.createElement('i');
-        delBtn.className = 'fas fa-trash-alt';
-        delBtn.className += ' note-del';
-        delBtn.addEventListener('click', () => deleteNote(n.id));
-
-        actions.append(checkBtn, delBtn);
-        item.append(span, actions);
-        list.appendChild(item);
+        acts.append(chk, del);
+        row.append(txt, acts);
+        list.appendChild(row);
     });
 }
 
-// ==================== HEATMAP ====================
+function makeNoteBtn(iconClass, className, title, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = className;
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.innerHTML = `<i class="fas ${iconClass}" aria-hidden="true"></i>`;
+    btn.addEventListener('click', onClick);
+    return btn;
+}
+
+// ============================================
+// 13. HEATMAP (hoạt động 28 ngày)
+// ============================================
 function initHeatmap() {
     const hm = document.getElementById('heatmap');
     if (!hm) return;
     hm.innerHTML = '';
-    const frag = document.createDocumentFragment(); // [+] batch DOM insert
+    const frag = document.createDocumentFragment();
     for (let i = 0; i < 28; i++) {
-        const cell = document.createElement('div');
-        cell.className = `cell${Math.random() > 0.5 ? ' active' : ''}`;
-        cell.title = `Day ${i + 1}`;
-        frag.appendChild(cell);
+        const c = document.createElement('div');
+        c.className = `hm-cell${Math.random() > 0.55 ? ' hm-cell--active' : ''}`;
+        c.title = `Day ${i + 1}`;
+        frag.appendChild(c);
     }
     hm.appendChild(frag);
 }
 
-// ==================== DAILY GOAL ====================
+// ============================================
+// 14. ACHIEVEMENTS (huy hiệu)
+// ============================================
+function renderAchievements() {
+    const cont = document.getElementById('achievements-container');
+    if (!cont) return;
+    cont.innerHTML = '';
+
+    const earned = new Map(
+        SKR.achievements.map(a => [
+            (a.achievement_name || '').toLowerCase().replace(/[\s-]+/g, '_'),
+            a.achieved_at
+        ])
+    );
+
+    const frag = document.createDocumentFragment();
+    ACHIEVEMENTS.forEach(def => {
+        const isOn = earned.has(def.key);
+        const b = document.createElement('div');
+        b.className = `ach-badge${isOn ? ' ach-badge--earned' : ' ach-badge--locked'}`;
+        b.setAttribute('role', 'listitem');
+        b.setAttribute('title', def.desc + (isOn ? '\n✅ Earned' : '\n🔒 Locked'));
+
+        b.innerHTML = `
+            <span class="ach-badge-icon">${def.icon}</span>
+            <span class="ach-badge-name">${def.name}</span>
+            ${isOn ? '' : '<span class="ach-badge-lock"><i class="fas fa-lock" aria-hidden="true"></i></span>'}
+        `;
+        frag.appendChild(b);
+    });
+    cont.appendChild(frag);
+
+    const cnt = document.getElementById('achCount');
+    if (cnt) cnt.textContent = `${earned.size} / ${ACHIEVEMENTS.length}`;
+}
+
+// ============================================
+// 15. DAILY GOAL
+// ============================================
 async function setDailyGoal() {
-    const input = document.getElementById('goalInput');
-    const val   = parseInt(input?.value);
-    if (!val || val < 1 || val > 1440) {
-        showToast('Please enter a valid number (1–1440)', true);
+    const v = parseInt(document.getElementById('goalInput')?.value);
+    if (!v || v < 1 || v > 1440) {
+        showToast('Enter 1–1440 min', true);
         return;
     }
-    SKR.goal = val;
-    setText('goalTarget', val);
-    showToast(`🎯 Daily goal set to ${val} minutes`);
+    SKR.goal = v;
+    setText('goalTarget', v);
+    updateUI();
+    showToast(`🎯 Goal: ${v} min/day`);
     try {
         await fetch('/api/update_stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'set_goal', value: val })
+            body: JSON.stringify({ action: 'set_goal', value: v })
         });
-    } catch (e) { /* silent */ }
+    } catch { }
 }
 
-// ==================== YOUTUBE MUSIC ====================
-function loadYouTube() {
-    const link      = document.getElementById('ytLink')?.value || '';
-    const container = document.getElementById('yt-player-container');
-    if (!container) return;
+// ============================================
+// 16. MUSIC ZONE
+// ============================================
+const PANELS = ['lofi', 'youtube', 'spotify', 'soundcloud'];
 
-    const match = link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    if (!match) {
-        showToast('❌ Invalid YouTube URL', true);
-        return;
-    }
+function switchPlatform(btn) {
+    document.querySelectorAll('.platform-pill').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
 
-    // [B7] FIX: sanitize video ID (chỉ cho phép alphanumeric + - _)
-    const videoId = match[1].replace(/[^a-zA-Z0-9_-]/g, '');
-    const iframe  = document.createElement('iframe');
-    iframe.src    = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    iframe.setAttribute('frameborder', '0');
-    iframe.setAttribute('allow', 'autoplay; encrypted-media');
-    iframe.setAttribute('allowfullscreen', '');
-    container.innerHTML = '';
-    container.appendChild(iframe);
-    showToast('🎵 Music loaded');
-}
-
-// ==================== ACHIEVEMENTS ====================
-function renderAchievements() {
-    const cont = document.getElementById('achievements-container');
-    if (!cont) return;
-
-    if (!SKR.achievements.length) {
-        cont.innerHTML = '<p style="opacity:0.5;">No achievements yet. Keep going!</p>';
-        return;
-    }
-
-    cont.innerHTML = '';
-    SKR.achievements.slice(0, 5).forEach(a => {
-        const div   = document.createElement('div');
-        div.className = 'achievement-item';
-        const icon  = document.createElement('i');
-        icon.className = 'fas fa-medal';
-        const name  = document.createElement('span');
-        name.textContent = ' ' + a.achievement_name;
-        const date  = document.createElement('small');
-        date.textContent = new Date(a.achieved_at).toLocaleDateString();
-        div.append(icon, name, date);
-        cont.appendChild(div);
+    const p = btn.dataset.platform;
+    PANELS.forEach(id => {
+        const panel = document.getElementById(`${id}-panel`);
+        if (panel) panel.classList.toggle('music-panel--active', id === p);
     });
 }
 
-// ==================== RESET FOCUS COUNT ====================
+function playLofi(videoId, btn) {
+    document.querySelectorAll('.lofi-card').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    embedYT(videoId);
+    showToast('🎧 Lofi đang phát...');
+}
+
+function loadYouTube() {
+    const url = document.getElementById('ytInput')?.value.trim() || '';
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (!m) {
+        showToast('❌ Invalid YouTube URL', true);
+        return;
+    }
+    embedYT(m[1]);
+    showToast('▶️ YouTube loaded');
+}
+
+function loadSpotify() {
+    const url = document.getElementById('spInput')?.value.trim() || '';
+    const m = url.match(/open\.spotify\.com\/(track|album|playlist|artist|episode|show)\/([a-zA-Z0-9]+)/);
+    if (!m) {
+        showToast('❌ Invalid Spotify URL', true);
+        return;
+    }
+    const [, type, id] = m;
+    const compact = type === 'track' || type === 'episode';
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://open.spotify.com/embed/${type}/${id}?theme=0`;
+    iframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+    iframe.setAttribute('loading', 'lazy');
+    iframe.className = 'music-iframe';
+    iframe.height = compact ? '152' : '352';
+    setPlayer(iframe);
+    showToast('🟢 Spotify loaded');
+}
+
+function loadSoundCloud() {
+    const url = document.getElementById('scInput')?.value.trim() || '';
+    if (!url.includes('soundcloud.com')) {
+        showToast('❌ Invalid SoundCloud URL', true);
+        return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff7eb3&auto_play=true&hide_related=true&show_comments=false`;
+    iframe.className = 'music-iframe sc-iframe';
+    setPlayer(iframe);
+    showToast('🔶 SoundCloud loaded');
+}
+
+function embedYT(videoId) {
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    iframe.setAttribute('allow', 'autoplay; encrypted-media');
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.className = 'music-iframe yt-iframe';
+    setPlayer(iframe);
+}
+
+function setPlayer(iframe) {
+    iframe.setAttribute('frameborder', '0');
+    const p = document.getElementById('music-player');
+    if (p) {
+        p.innerHTML = '';
+        p.appendChild(iframe);
+    }
+}
+
+// ============================================
+// 17. RESET FOCUS COUNT
+// ============================================
 async function resetFocusCount() {
     if (!confirm('Reset focus count to 0?')) return;
     try {
-        const res = await fetch('/api/update_stats', {
+        await fetch('/api/update_stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'reset_focus' })
         });
-        if (res.ok) {
-            SKR.focusCount = 0;
-            setText('focusCount', '0');
-            showToast('✅ Focus count reset');
-        } else {
-            showToast('❌ Failed to reset', true);
-        }
-    } catch (e) {
-        showToast('❌ Network error', true);
+        SKR.focusCount = 0;
+        setText('focusCount', '0');
+        showToast('✅ Reset');
+    } catch {
+        showToast('❌ Error', true);
     }
 }
 
-// ==================== LOGOUT ====================
-// [B8] FIX: đưa vào hàm gọi trong DOMContentLoaded thay vì script-level
+// ============================================
+// 18. LOGOUT
+// ============================================
 function initLogout() {
     document.getElementById('logout-btn')?.addEventListener('click', e => {
         e.preventDefault();
-        showToast('👋 Logging out...');
+        showToast('👋 Bye!');
         setTimeout(() => { window.location.href = '/logout'; }, 800);
     });
 }
 
-// ==================== [+] THEME TOGGLE ====================
+// ============================================
+// 19. THEME TOGGLE (sáng/tối)
+// ============================================
 function initThemeToggle() {
-    // tạo nút nếu chưa có trong HTML
     let btn = document.getElementById('theme-toggle-btn');
     if (!btn) {
         btn = document.createElement('button');
-        btn.id        = 'theme-toggle-btn';
+        btn.id = 'theme-toggle-btn';
         btn.className = 'theme-toggle';
         btn.setAttribute('aria-label', 'Toggle theme');
         document.body.appendChild(btn);
     }
-
-    const saved = localStorage.getItem('skr_theme') || 'dark';
-    applyTheme(saved, btn);
-
+    applyTheme(localStorage.getItem('skr_theme') || 'dark', btn);
     btn.addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
         applyTheme(next, btn);
@@ -731,20 +794,22 @@ function initThemeToggle() {
     });
 }
 
-function applyTheme(theme, btn) {
-    document.documentElement.dataset.theme = theme;
-    if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+function applyTheme(t, btn) {
+    document.documentElement.dataset.theme = t;
+    if (btn) btn.textContent = t === 'light' ? '🌙' : '☀️';
 }
 
-// ==================== [+] KEYBOARD SHORTCUTS ====================
-function initKeyboardShortcuts() {
+// ============================================
+// 20. KEYBOARD SHORTCUTS
+// ============================================
+function initKeyboard() {
     document.addEventListener('keydown', e => {
-        // bỏ qua khi đang focus vào input / textarea
-        if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
-
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
         if (e.code === 'Space') {
             e.preventDefault();
-            isRunning ? pauseTimer() : (timerEndTime ? resumeTimer() : startTimer());
+            if (isRunning) pauseTimer();
+            else if (timerEndMs) resumeTimer();
+            else startTimer();
         } else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
             resetTimer();
         } else if (e.code === 'KeyF') {
@@ -753,69 +818,56 @@ function initKeyboardShortcuts() {
     });
 }
 
-// ==================== [+] BROWSER NOTIFICATION ====================
-function requestNotifPermission() {
+// ============================================
+// 21. NOTIFICATION PERMISSION
+// ============================================
+function requestNotifPerm() {
     if ('Notification' in window && Notification.permission === 'default') {
-        // chỉ hỏi khi user đã tương tác (click bất kỳ đâu)
-        document.addEventListener('click', () => {
-            Notification.requestPermission();
-        }, { once: true });
+        document.addEventListener('click', () => Notification.requestPermission(), { once: true });
     }
 }
 
-// ==================== CONFETTI ====================
-function confettiEffect() {
-    if (typeof confetti === 'function') {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+// ============================================
+// 22. CONFETTI
+// ============================================
+function confetti() {
+    if (typeof window.confetti === 'function') {
+        window.confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
         return;
     }
-    const frag = document.createDocumentFragment();
+    // Fallback tự chế
     for (let i = 0; i < 30; i++) {
         setTimeout(() => {
             const c = document.createElement('div');
-            c.style.cssText = [
-                'position:fixed',
-                `left:${Math.random() * 100}%`,
-                'top:-10px',
-                'width:8px',
-                'height:8px',
-                `background:hsl(${Math.floor(Math.random() * 360)},100%,70%)`,
-                'border-radius:50%',
-                'z-index:10002',
-                `animation:confettiFall ${(Math.random() * 2 + 2).toFixed(1)}s linear forwards`
-            ].join(';');
+            c.style.cssText = `position:fixed;left:${Math.random() * 100}%;top:-10px;width:8px;height:8px;background:hsl(${Math.random() * 360 | 0},100%,70%);border-radius:50%;z-index:10002;animation:cFall ${(Math.random() * 2 + 2).toFixed(1)}s linear forwards`;
             document.body.appendChild(c);
-            setTimeout(() => c.remove(), 4000);
+            setTimeout(() => c.remove(), 4500);
         }, i * 50);
     }
 }
+// Thêm keyframes cho confetti fallback
+const _s = document.createElement('style');
+_s.textContent = '@keyframes cFall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}';
+document.head.appendChild(_s);
 
-// inject confetti keyframe 1 lần duy nhất
-const _confettiStyle = document.createElement('style');
-_confettiStyle.textContent = '@keyframes confettiFall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}';
-document.head.appendChild(_confettiStyle);
-
-// ==================== UTILS ====================
-// [B7] helper escape HTML để tránh XSS trong toast message
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+// ============================================
+// 23. UTILITIES
+// ============================================
+function setText(id, v) {
+    const e = document.getElementById(id);
+    if (e) e.textContent = v;
+}
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ==================== EXPORT ====================
+// ============================================
+// 24. EXPORT GLOBAL (cho onclick trong HTML)
+// ============================================
 Object.assign(window, {
-    startTimer,
-    pauseTimer,
-    resumeTimer,
-    resetTimer,
-    toggleFocusMode,
-    addNote,
-    toggleNote,
-    deleteNote,
-    setDailyGoal,
-    loadYouTube,
-    resetFocusCount
+    startTimer, pauseTimer, resumeTimer, resetTimer, adjustTimer,
+    toggleFocusMode, resetFocusCount, testAlarm,
+    addNote, toggleNote, deleteNote, setDailyGoal,
+    loadYouTube, loadSpotify, loadSoundCloud, playLofi, switchPlatform,
+    saveFocusNote  // 👈 thêm để nút trong focus mode hoạt động
 });
